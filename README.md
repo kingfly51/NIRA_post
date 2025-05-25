@@ -3,10 +3,12 @@ The full set of code from the Simulating Interventions for Cross-Sectional Netwo
 
 ##1.How to install NIRApost ##
 
-Users can install the NIRPostpost package using the following command. Of course, the prerequisite is that the user needs to install the devtools package first.
+Users can install the NIRPostpost package using the following command. Of course, the prerequisite is that the user needs to install the devtools package first.In addition, users can also download and install locally.
 
+install.packages("devtools")
 devtools::install_github("kingfly51/NIRA_post")
 
+##2.Introduction to each file in NIRApost##
 
 
 
