@@ -12,5 +12,11 @@ devtools::install_github("kingfly51/NIRA_post")
 
 ##2.Introduction to each file in NIRApost##
 
+The data/ directory contains five built-in datasets distributed with the NIRApost package, stored in .rda format for immediate accessibility upon package loading. Users can directly load these datasets into their R environment—for example, the single_gds dataset can be accessed via:
+
+data("single_gds")
+
+The data_raw/ directory stores the original .xlsx files for all five datasets.
+
 
 
