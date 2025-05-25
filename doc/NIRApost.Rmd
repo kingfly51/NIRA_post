@@ -1,0 +1,157 @@
+---
+title: "NIRApost Tutorial"
+author: "Wang Fei, Wu Yiming, Wu Yibo, Zhu Tingshao"
+date: "2025-05-25"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{NIRApost Tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+## NIRApost R Markdown
+This is an R Markdown document. NIRApost is an R package designed for computerized simulation intervention in cross-sectional networks, enabling:
+
+Post-intervention permutation tests
+
+Stability analysis
+
+Moderation effect testing
+
+Visualization
+
+The package is typically used in conjunction with NodeIdentifyR. For detailed usage guidelines, please refer to our tutorial article:
+
+"Simulation Intervention for Cross-Sectional Network Models: An R Tutorial"
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Package Load
+Load the R package used in the example into the current workspace
+
+```{r package_load}
+library(NIRApost)#Load NIRApost Package
+library(bootnet)#Load bootnet Package
+library(nodeIdentifyR)#load nodeIdentifyR Package 
+library(dplyr)#Load dplyr Package
+```
+
+## Import data and fit Ising network
+
+We utilized the built-in dataset single_gds from the NIRApost package to estimate an Ising network using the estimateNetwork function from the bootnet package, implementing the more stringent "AND" rule for network estimation. From this cross-sectional network, we extracted two critical components for subsequent NIRA simulation studies:
+
+Edge weight matrix of the entire Ising network, which contains:
+
+Complete node information
+
+Pairwise connection weights between all nodes
+
+Threshold parameter vector derived from the intercept terms of each node in the Ising model
+
+These two components enable computerized network intervention simulations in subsequent analyses.
+
+Implementation code:
+
+```{r Ising_Network_Fit, echo=TRUE}
+#data(package="NIRApost")#View the dataset stored in the NIRAspost package
+data("single_gds")#load data
+gs_fit<-estimateNetwork(single_gds,default = "IsingFit",rule="AND")#Fit Ising model
+edgeWeightMatrix<-gs_fit$graph#Extract the weight matrix of edges
+thresholdVector<-gs_fit$intercepts#Extract the intercept term from logistic regression as the threshold parameter
+```
+## Simulated_alleviate_intervention
+This section primarily utilizes four functions from the nodeIdentifyR package to conduct computer-simulated alleviating interventions. If users wish to perform simulated aggravating interventions, they simply need to change the perturbation_type parameter in both the simulateResponses function and the plotSumScores function from "alleviating" to "aggravating."
+
+Specifically, the simulateResponses function first employs the edge weight matrix (edgeWeightMatrix) and threshold parameter vector (thresholdVector) extracted from the Ising network to simulate an alleviating intervention that reduces the intercept of each node by two standard deviations. Given that the edge weight matrix and threshold parameter vector can be used to simulate responses for a group of participants, the simulateResponses function essentially performs 7+1 rounds of response simulation. The 7 rounds represent sequentially reducing the intercept of a specific node by two standard deviations while keeping the intercepts of other nodes unchanged, along with the edge weight matrix unchanged—meaning a simulated alleviating intervention is applied to that node. 1 round represents directly using the original weight matrix and threshold parameter vector to simulate a new sample with a similar response pattern to the original sample. This step ultimately generates 7+1 new simulated datasets, where the 7 datasets represent simulated responses for 5,000 participants under sequential alleviating interventions targeting each node, and the remaining one represents simulated responses for 5,000 participants using the original weight matrix and threshold parameter vector.
+
+After obtaining the output gs_IsingSamples from the simulateResponses function, the next step is to input it into the calculateSumScores function. This step primarily calculates the total sum scores for each participant (i.e., 5,000 × 7) across all items in the 7+1 simulated datasets. Specifically, since the previous step simulated each participant's responses on individual items, summing these scores yields the total GDS score for each participant, which measures the severity of their depressive symptoms.
+
+Once the output gs_sumIsingSamples from the calculateSumScores function is obtained, it is passed to the prepareDFforPlottingAndANOVA function to transform the originally wide-format data into long-format data, facilitating subsequent plotting.
+
+Finally, the output gs_sumIsingSamplesLong from the prepareDFforPlottingAndANOVA function is fed into the plotSumScores function to generate a plot of the mean total scores for the 7+1 simulated datasets, sorted in ascending order (for "alleviating") or descending order (for "aggravating"). This allows for a comparison between the mean total score of the original unperturbed dataset and those of the datasets with simulated alleviating interventions targeting individual nodes, thereby identifying the most influential node.
+
+```{r Simulated_alleviate_intervention}
+set.seed(2025)#set seed
+gs_IsingSamples<-simulateResponses(edgeWeightMatrix, thresholdVector, "alleviating", 2)#Generate N+1 simulated samples, where N represents simulated alleviate intervention samples for N nodes and 1 represents simulated origin samples
+gs_sumIsingSamples<-calculateSumScores(gs_IsingSamples)#Calculate the total score of each participant in each simulated sample
+gs_sumIsingSamplesLong<-prepareDFforPlottingAndANOVA(gs_sumIsingSamples)#Convert the total score calculated from the previously generated origin simulation samples and the simulation intervention samples of each node into a long format for plotting purposes
+plotSumScores(sum_scores_long=gs_sumIsingSamplesLong,perturbation_type="alleviating")#Draw an average total score figure
+
+```
+## Post hoc analysis of NIRA
+
+In general, NIRA (NodeIdentifyR Algorithm) would typically conclude after completing the aforementioned steps. However, in our view, this is far from sufficient. Therefore, we propose three additional validation tests to ensure the reliability of NIRA results. These three tests are: permutation testing, stability testing, and moderation effect testing. Since these components represent the core aspects we aim to emphasize, we will elaborate on each of them separately in the following sections.
+
+##Permutation Test
+
+First, we will elaborate in detail on the permutation test. Although researchers commonly rely on visual inspection of the plotSumScores output to determine whether there is a difference between the mean total score of a simulated intervention on a specific node and that of the original simulated sample, this approach may lead to four key issues.
+
+First, it fails to provide convincing statistical evidence to confirm whether the simulated intervention truly had an effect. Second, while the error bars in the plotSumScores plot represent 95% confidence intervals (CIs), users might attempt to assess significance by checking whether the error bars of the original simulated sample’s mean total score overlap with those of the intervention sample. However, when the means are far apart or the error bars are near the threshold of overlap, visual inspection alone becomes unreliable for determining significance. Third, the significance level is often influenced by the intervention strength (i.e., the number of standard deviations shifted). For instance, when applying a 2-SD intervention, the difference between the original and intervention sample means is typically large and easily discernible. However, if researchers examine smaller intervention effects, visual assessment becomes highly problematic. Finally, the plotSumScores output does not account for multiple comparisons, leading to alpha inflation. Thus, significance testing requires correction for false positives, which is particularly crucial in networks with a larger number of nodes.
+
+Having established the necessity of permutation testing, we now describe how NIRApost implements this procedure. Specifically, NIRApost conducts permutation testing using three core functions: permutation_test(), getstat(), and plotmeanNIRA().
+
+permutation_test(): This function evaluates the statistical significance of the difference in distributions between the original sample scores (specified via the original parameter, consisting of 5,000 simulated total scores) and the post-intervention sample scores (specified via the group parameter, consisting of 5,000 total scores generated under specific node-based interventions). The significance is assessed using a permutation test (with the number of permutations set to n_perm = 5000 by default). getstat(): Building upon the permutation test, this function integrates multiple comparison correction methods (specified via the method parameter). It enables batch processing of intervention effect assessments across all nodes and outputs statistically significant results after correction. plotmeanNIRA(): Designed specifically for result visualization, this function generates intuitive significance maps (e.g., see Figure 9) by taking the statistical output from getstat() (passed via the statresult parameter) and specifying the type of intervention (via the perturbation_type parameter, with options "aggravating" or "alleviating"). 
+
+```{r permutation_test}
+stat_result<-getstat(gs_sumIsingSamplesLong,method="bonferroni")#Perform permutation test and extract statistical measures, and use Bonferroni for multiple comparison correction
+head(stat_result$stat)#View statistics
+plotmeanNIRA(stat_result,"alleviating")#Visualize Mean Values with Confidence Intervals from NIRA Analysis,Please note,The 'alleviating' needs to be consistent with the perturbation_type mentioned earlier
+```
+
+##Stability Test
+
+Why Stability Testing is Necessary? In practice, we have observed that relying on a single simulation run—and reporting its results as final findings in a study—may introduce substantial bias. For instance, while initial simulations might identify WTM as the optimal node for alleviating interventions, changing the random seed could lead to a different "best" node. This raises critical concerns about the stability of the simulation process. Only results derived from a highly stable procedure can be deemed reliable. If the conclusions fluctuate unpredictably with different random seeds, the entire NIRA framework loses its validity.
+
+Having established the necessity of stability testing, we provide three functions in NIRApost to evaluate and visualize the stability of NIRA results. Specifically:
+
+The BootNIRAresult() function invokes the simulateResponses function from the NodeIdentifyR package, which is designed for simulating interventions. By utilizing the original threshold parameter vector (thresholds parameter) and edge weight matrix (edge_weights parameter) extracted from the Ising network, along with specifying the intervention type (perturbation_type parameter, either "aggravating" or "alleviating") and intervention intensity (amount_of_SDs_perturbation parameter, defaulting to 2 standard deviations), the function simulates both the original sample and the samples subjected to simulated interventions on each node. The ability of BootNIRAresult() to repeatedly simulate the original sample stems from its fifth parameter, nboots, which determines the number of iterations for repeated simulations. This process generates a large number of sample pairs (i.e., n simulated intervention samples and one simulated original sample) through nboots repetitions. Given the substantial time cost associated with serial computation, the BootNIRAresult() function also offers an option for parallel processing. The sixth parameter, parallel, when set to TRUE, enables parallel computing, with the seventh parameter, ncores, specifying the number of cores used. If serial computation is preferred, ncores should be set to NULL.
+
+After obtaining 1,000 repeated simulated sample pairs using the BootNIRAresult() function, the next step involves computing stability metrics based on these pairs. The findmaxn() function analyzes the differences in network intervention effects generated during the repeated simulation process, identifying which nodes exhibit the most significant differences compared to the original network across multiple simulations and calculating their frequency and relative proportions. Specifically, the findmaxn() function takes two parameters: the first, Bootresult, inputs the output of BootNIRAresult(), while the second, n, specifies the top-n largest differences to consider (defaulting to 3). This function examines the frequency of intervention effects for each node at the 1st, 2nd, ..., n-th largest difference positions. For example, if n is set to 3, the function will only compute the frequency of each node appearing among the top three positions in terms of intervention effect magnitude. Observing these frequencies reveals the stability of a node’s intervention effect in NIRA.
+
+Building on this, the plotmaxn() function is specifically designed to visualize the results of the findmaxn() analysis, providing an intuitive representation of node intervention effect stability. By inputting the output of findmaxn() into the first parameter, maxn, users can flexibly control the range of difference levels displayed using the low and high parameters, which support any reasonable range setting. For instance, to visualize the frequencies of nodes ranked from top 1 to top 5, users need only set low to 1 and high to 5.
+
+
+```{r stability_test}
+set.seed(2025)#set seed
+#parallel code
+Bootresult<-BootNIRAresult(edgeWeightMatrix,thresholdVector,"alleviating",2,100,parallel = TRUE, ncores = 6)#Perform parallel and repeated simulation interventions with 6 cores for 100 times. For demonstration purposes, only 100 times will be repeated here
+
+#serial code
+#Bootresult<-BootNIRAresult(edgeWeightMatrix,thresholdVector,"alleviating",2,100,parallel = FALSE, ncores = NULL)#It is worth noting that serial has a timeline, but parallel does not
+
+repeat_node <- findmaxn(Bootresult,n=7)#Extract the percentage and frequency of each node appearing in the top n absolute mean difference rankings between post-intervention simulated samples and the original simulated sample.
+plotmaxn(repeat_node,low=1,high=7)#Generate stability plots of node ranking orders.
+
+```
+
+##Moderation Effect Test
+
+Moderation effect testing is essential for NIRA (Node-Specific Intervention Robustness Assessment). This necessity arises from the fundamental structure of NIRA's simulation process:
+
+Original Sample Simulation: Generated directly using the original edge weight matrix and threshold parameter vector.
+
+Intervention Sample Simulation: Generated using the original edge weight matrix but with modified threshold parameters (i.e., perturbed node intercepts).
+
+This framework introduces a critical question: When altering a node’s intercept, do the edge weights between other nodes remain unchanged? This is precisely the issue of moderation effects. If such effects exist (e.g., node A moderates the relationship between nodes B and C), then reducing node A’s intercept (making it more likely to be 0) would inherently alter the B–C interaction. In such cases, continuing to use the original weight matrix for post-intervention simulations becomes theoretically inappropriate.
+
+Thus, testing for moderation effects constitutes a core prerequisite for NIRA. Only when the network exhibits minimal or no moderation effects can the intervention results be considered reliable.
+
+To address this, NIRApost provides a dedicated function that:
+
+1)Leverages the mgm package to construct moderated network models (via mgm()).
+
+2)Employs resampling techniques (resample()) to assess result stability.
+
+3)Repeats this process node-wise to quantify moderation effects across the entire network.
+
+we developed a function named run_mgmm_analysis() to implement this functionality. This function primarily employs the mgm function from the mgm package to construct a moderated network analysis and performs repeated resampling via resample to assess the stability of the moderating effects. A more detailed procedure involves iteratively treating each node in the network as a moderator variable, testing its moderating effect on every pairwise interaction between the remaining nodes. This process is repeated for every node in the network. Finally, resampling is conducted to generate as many samples as possible to evaluate the stability of the moderating effects. Only those moderating effects that pass the stability test are considered statistically reliable. Specifically, the run_mgmm_analysis() function takes five parameters: The first parameter, data, is used to input the dataset for network construction. The second parameter, plot_results, is a logical argument. When set to TRUE, the function exports all moderated network graphs to the current working directory; no output is generated when set to FALSE. The third and fourth parameters are used in the construction of the moderated network analysis. The rule parameter specifies whether the "OR" or "AND" rule is applied when building the moderated network, consistent with the rules introduced in the Ising network. The lambdaGam parameter represents the hyperparameter for EBIC (Extended Bayesian Information Criterion), which is used by default for parameter selection, with a default value of 0.25. The final parameter, nB, defines the number of resampling iterations. Given that the stability test for moderating effects across the entire network can be extremely time-consuming, especially when the number of nodes is large, the default resampling count is set to 100. Upon execution, the run_mgmm_analysis() function returns a list containing the statistically significant moderating effects in the network. If an empty list is returned, it indicates that no stable moderating effects were detected in the network.
+
+```{r Moderation_Effect_Test}
+sig_moder<-run_mgmm_analysis(data=as.matrix(single_gds), plot_results = FALSE,rule = "AND", lambdaGam = 0.25, nB = 10)#Iteratively calculate the moderation effect of each node in the network.The purpose of the demonstration is to set nB to 10
+print(sig_moder$significant_moderators)#Print the results of significant moderation effects
+```
+
