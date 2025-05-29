@@ -5,7 +5,7 @@ The full set of code from the Simulating Interventions for Cross-Sectional Netwo
 ##1. How to use NIRApost ##
 
 
-There is a NIRApot.html file in the doc folder, which contains a simple tutorial on how to use NIRApot.
+There is a NIRApost.html file in the doc folder, which contains a simple tutorial on how to use NIRApost.
 
 
 
