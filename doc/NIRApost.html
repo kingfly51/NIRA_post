@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Wang Fei, Wu Yiming, Wu Yibo, Zhu Tingshao" />
+
+<meta name="date" content="2025-05-25" />
+
+<title>NIRApost Tutorial</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">NIRApost Tutorial</h1>
+<h4 class="author">Wang Fei, Wu Yiming, Wu Yibo, Zhu Tingshao</h4>
+<h4 class="date">2025-05-25</h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#nirapost-r-markdown" id="toc-nirapost-r-markdown">NIRApost
+R Markdown</a></li>
+<li><a href="#package-load" id="toc-package-load">Package Load</a></li>
+<li><a href="#import-data-and-fit-ising-network" id="toc-import-data-and-fit-ising-network">Import data and fit Ising
+network</a></li>
+<li><a href="#simulated_alleviate_intervention" id="toc-simulated_alleviate_intervention">Simulated_alleviate_intervention</a></li>
+<li><a href="#post-hoc-analysis-of-nira" id="toc-post-hoc-analysis-of-nira">Post hoc analysis of NIRA</a></li>
+</ul>
+</div>
+
+<div id="nirapost-r-markdown" class="section level2">
+<h2>NIRApost R Markdown</h2>
+<p>This is an R Markdown document. NIRApost is an R package designed for
+computerized simulation intervention in cross-sectional networks,
+enabling:</p>
+<p>Post-intervention permutation tests</p>
+<p>Stability analysis</p>
+<p>Moderation effect testing</p>
+<p>Visualization</p>
+<p>The package is typically used in conjunction with NodeIdentifyR. For
+detailed usage guidelines, please refer to our tutorial article:</p>
+<p>“Simulation Intervention for Cross-Sectional Network Models: An R
+Tutorial”</p>
+</div>
+<div id="package-load" class="section level2">
+<h2>Package Load</h2>
+<p>Load the R package used in the example into the current workspace</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(NIRApost)<span class="co">#Load NIRApost Package</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(bootnet)<span class="co">#Load bootnet Package</span></span></code></pre></div>
+<pre><code>## 载入需要的程序包：ggplot2</code></pre>
+<pre><code>## Warning: 程序包&#39;ggplot2&#39;是用R版本4.4.3 来建造的</code></pre>
+<pre><code>## This is bootnet 1.6</code></pre>
+<pre><code>## For questions and issues, please see github.com/SachaEpskamp/bootnet.</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">library</span>(nodeIdentifyR)<span class="co">#load nodeIdentifyR Package </span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)<span class="co">#Load dplyr Package</span></span></code></pre></div>
+<pre><code>## 
+## 载入程序包：&#39;dplyr&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     filter, lag</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     intersect, setdiff, setequal, union</code></pre>
+</div>
+<div id="import-data-and-fit-ising-network" class="section level2">
+<h2>Import data and fit Ising network</h2>
+<p>We utilized the built-in dataset single_gds from the NIRApost package
+to estimate an Ising network using the estimateNetwork function from the
+bootnet package, implementing the more stringent “AND” rule for network
+estimation. From this cross-sectional network, we extracted two critical
+components for subsequent NIRA simulation studies:</p>
+<p>Edge weight matrix of the entire Ising network, which contains:</p>
+<p>Complete node information</p>
+<p>Pairwise connection weights between all nodes</p>
+<p>Threshold parameter vector derived from the intercept terms of each
+node in the Ising model</p>
+<p>These two components enable computerized network intervention
+simulations in subsequent analyses.</p>
+<p>Implementation code:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co">#data(package=&quot;NIRApost&quot;)#View the dataset stored in the NIRAspost package</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;single_gds&quot;</span>)<span class="co">#load data</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>gs_fit<span class="ot">&lt;-</span><span class="fu">estimateNetwork</span>(single_gds,<span class="at">default =</span> <span class="st">&quot;IsingFit&quot;</span>,<span class="at">rule=</span><span class="st">&quot;AND&quot;</span>)<span class="co">#Fit Ising model</span></span></code></pre></div>
+<pre><code>## Estimating Network. Using package::function:
+##   - IsingFit::IsingFit for network computation
+##     - Using glmnet::glmnet</code></pre>
+<pre><code>##   |                                                                              |                                                                      |   0%  |                                                                              |==========                                                            |  14%  |                                                                              |====================                                                  |  29%  |                                                                              |==============================                                        |  43%  |                                                                              |========================================                              |  57%  |                                                                              |==================================================                    |  71%  |                                                                              |============================================================          |  86%  |                                                                              |======================================================================| 100%</code></pre>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>edgeWeightMatrix<span class="ot">&lt;-</span>gs_fit<span class="sc">$</span>graph<span class="co">#Extract the weight matrix of edges</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>thresholdVector<span class="ot">&lt;-</span>gs_fit<span class="sc">$</span>intercepts<span class="co">#Extract the intercept term from logistic regression as the threshold parameter</span></span></code></pre></div>
+</div>
+<div id="simulated_alleviate_intervention" class="section level2">
+<h2>Simulated_alleviate_intervention</h2>
+<p>This section primarily utilizes four functions from the nodeIdentifyR
+package to conduct computer-simulated alleviating interventions. If
+users wish to perform simulated aggravating interventions, they simply
+need to change the perturbation_type parameter in both the
+simulateResponses function and the plotSumScores function from
+“alleviating” to “aggravating.”</p>
+<p>Specifically, the simulateResponses function first employs the edge
+weight matrix (edgeWeightMatrix) and threshold parameter vector
+(thresholdVector) extracted from the Ising network to simulate an
+alleviating intervention that reduces the intercept of each node by two
+standard deviations. Given that the edge weight matrix and threshold
+parameter vector can be used to simulate responses for a group of
+participants, the simulateResponses function essentially performs 7+1
+rounds of response simulation. The 7 rounds represent sequentially
+reducing the intercept of a specific node by two standard deviations
+while keeping the intercepts of other nodes unchanged, along with the
+edge weight matrix unchanged—meaning a simulated alleviating
+intervention is applied to that node. 1 round represents directly using
+the original weight matrix and threshold parameter vector to simulate a
+new sample with a similar response pattern to the original sample. This
+step ultimately generates 7+1 new simulated datasets, where the 7
+datasets represent simulated responses for 5,000 participants under
+sequential alleviating interventions targeting each node, and the
+remaining one represents simulated responses for 5,000 participants
+using the original weight matrix and threshold parameter vector.</p>
+<p>After obtaining the output gs_IsingSamples from the simulateResponses
+function, the next step is to input it into the calculateSumScores
+function. This step primarily calculates the total sum scores for each
+participant (i.e., 5,000 × 7) across all items in the 7+1 simulated
+datasets. Specifically, since the previous step simulated each
+participant’s responses on individual items, summing these scores yields
+the total GDS score for each participant, which measures the severity of
+their depressive symptoms.</p>
+<p>Once the output gs_sumIsingSamples from the calculateSumScores
+function is obtained, it is passed to the prepareDFforPlottingAndANOVA
+function to transform the originally wide-format data into long-format
+data, facilitating subsequent plotting.</p>
+<p>Finally, the output gs_sumIsingSamplesLong from the
+prepareDFforPlottingAndANOVA function is fed into the plotSumScores
+function to generate a plot of the mean total scores for the 7+1
+simulated datasets, sorted in ascending order (for “alleviating”) or
+descending order (for “aggravating”). This allows for a comparison
+between the mean total score of the original unperturbed dataset and
+those of the datasets with simulated alleviating interventions targeting
+individual nodes, thereby identifying the most influential node.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2025</span>)<span class="co">#set seed</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>gs_IsingSamples<span class="ot">&lt;-</span><span class="fu">simulateResponses</span>(edgeWeightMatrix, thresholdVector, <span class="st">&quot;alleviating&quot;</span>, <span class="dv">2</span>)<span class="co">#Generate N+1 simulated samples, where N represents simulated alleviate intervention samples for N nodes and 1 represents simulated origin samples</span></span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>gs_sumIsingSamples<span class="ot">&lt;-</span><span class="fu">calculateSumScores</span>(gs_IsingSamples)<span class="co">#Calculate the total score of each participant in each simulated sample</span></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>gs_sumIsingSamplesLong<span class="ot">&lt;-</span><span class="fu">prepareDFforPlottingAndANOVA</span>(gs_sumIsingSamples)<span class="co">#Convert the total score calculated from the previously generated origin simulation samples and the simulation intervention samples of each node into a long format for plotting purposes</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="fu">plotSumScores</span>(<span class="at">sum_scores_long=</span>gs_sumIsingSamplesLong,<span class="at">perturbation_type=</span><span class="st">&quot;alleviating&quot;</span>)<span class="co">#Draw an average total score figure</span></span></code></pre></div>
+<pre><code>## $sumScoresPlot</code></pre>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<pre><code>## 
+## $plottedInformation
+##    thresholdIteration meanSumscore  ciLower  ciUpper
+##                &lt;char&gt;        &lt;num&gt;    &lt;num&gt;    &lt;num&gt;
+## 1:           original       3.4036 3.325365 3.481835
+## 2:                WTM       1.8910 1.824408 1.957592
+## 3:                 TR       1.9420 1.876404 2.007596
+## 4:                 NA       1.9442 1.875436 2.012964
+## 5:                IRR       1.9548 1.888504 2.021096
+## 6:                 UW       2.0596 1.993704 2.125496
+## 7:                RES       2.1564 2.089552 2.223248
+## 8:                ASH       2.2720 2.205218 2.338782</code></pre>
+</div>
+<div id="post-hoc-analysis-of-nira" class="section level2">
+<h2>Post hoc analysis of NIRA</h2>
+<p>In general, NIRA (NodeIdentifyR Algorithm) would typically conclude
+after completing the aforementioned steps. However, in our view, this is
+far from sufficient. Therefore, we propose three additional validation
+tests to ensure the reliability of NIRA results. These three tests are:
+permutation testing, stability testing, and moderation effect testing.
+Since these components represent the core aspects we aim to emphasize,
+we will elaborate on each of them separately in the following
+sections.</p>
+<p>##Permutation Test</p>
+<p>First, we will elaborate in detail on the permutation test. Although
+researchers commonly rely on visual inspection of the plotSumScores
+output to determine whether there is a difference between the mean total
+score of a simulated intervention on a specific node and that of the
+original simulated sample, this approach may lead to four key
+issues.</p>
+<p>First, it fails to provide convincing statistical evidence to confirm
+whether the simulated intervention truly had an effect. Second, while
+the error bars in the plotSumScores plot represent 95% confidence
+intervals (CIs), users might attempt to assess significance by checking
+whether the error bars of the original simulated sample’s mean total
+score overlap with those of the intervention sample. However, when the
+means are far apart or the error bars are near the threshold of overlap,
+visual inspection alone becomes unreliable for determining significance.
+Third, the significance level is often influenced by the intervention
+strength (i.e., the number of standard deviations shifted). For
+instance, when applying a 2-SD intervention, the difference between the
+original and intervention sample means is typically large and easily
+discernible. However, if researchers examine smaller intervention
+effects, visual assessment becomes highly problematic. Finally, the
+plotSumScores output does not account for multiple comparisons, leading
+to alpha inflation. Thus, significance testing requires correction for
+false positives, which is particularly crucial in networks with a larger
+number of nodes.</p>
+<p>Having established the necessity of permutation testing, we now
+describe how NIRApost implements this procedure. Specifically, NIRApost
+conducts permutation testing using three core functions:
+permutation_test(), getstat(), and plotmeanNIRA().</p>
+<p>permutation_test(): This function evaluates the statistical
+significance of the difference in distributions between the original
+sample scores (specified via the original parameter, consisting of 5,000
+simulated total scores) and the post-intervention sample scores
+(specified via the group parameter, consisting of 5,000 total scores
+generated under specific node-based interventions). The significance is
+assessed using a permutation test (with the number of permutations set
+to n_perm = 5000 by default). getstat(): Building upon the permutation
+test, this function integrates multiple comparison correction methods
+(specified via the method parameter). It enables batch processing of
+intervention effect assessments across all nodes and outputs
+statistically significant results after correction. plotmeanNIRA():
+Designed specifically for result visualization, this function generates
+intuitive significance maps (e.g., see Figure 9) by taking the
+statistical output from getstat() (passed via the statresult parameter)
+and specifying the type of intervention (via the perturbation_type
+parameter, with options “aggravating” or “alleviating”).</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>stat_result<span class="ot">&lt;-</span><span class="fu">getstat</span>(gs_sumIsingSamplesLong,<span class="at">method=</span><span class="st">&quot;bonferroni&quot;</span>)<span class="co">#Perform permutation test and extract statistical measures, and use Bonferroni for multiple comparison correction</span></span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a><span class="fu">head</span>(stat_result<span class="sc">$</span>stat)<span class="co">#View statistics</span></span></code></pre></div>
+<pre><code>##     mean_other sd_other   se_other   ci_other ciLower_other ciUpper_other
+## ASH     2.2720 2.408729 0.03406458 0.06676657      2.205233      2.338767
+## RES     2.1564 2.411120 0.03409839 0.06683285      2.089567      2.223233
+## UW      2.0596 2.376800 0.03361303 0.06588153      1.993718      2.125482
+## IRR     1.9548 2.391213 0.03381686 0.06628105      1.888519      2.021081
+## NA      1.9442 2.480225 0.03507568 0.06874833      1.875452      2.012948
+## TR      1.9420 2.365958 0.03345969 0.06558100      1.876419      2.007581
+##       cohen_d          p   p.adjust
+## ASH 0.4313452 0.00019996 0.00139972
+## RES 0.4752109 0.00019996 0.00139972
+## UW  0.5151756 0.00019996 0.00139972
+## IRR 0.5539504 0.00019996 0.00139972
+## NA  0.5493650 0.00019996 0.00139972
+## TR  0.5613147 0.00019996 0.00139972</code></pre>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="fu">plotmeanNIRA</span>(stat_result,<span class="st">&quot;alleviating&quot;</span>)<span class="co">#Visualize Mean Values with Confidence Intervals from NIRA Analysis,Please note,The &#39;alleviating&#39; needs to be consistent with the perturbation_type mentioned earlier</span></span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p>##Stability Test</p>
+<p>Why Stability Testing is Necessary? In practice, we have observed
+that relying on a single simulation run—and reporting its results as
+final findings in a study—may introduce substantial bias. For instance,
+while initial simulations might identify WTM as the optimal node for
+alleviating interventions, changing the random seed could lead to a
+different “best” node. This raises critical concerns about the stability
+of the simulation process. Only results derived from a highly stable
+procedure can be deemed reliable. If the conclusions fluctuate
+unpredictably with different random seeds, the entire NIRA framework
+loses its validity.</p>
+<p>Having established the necessity of stability testing, we provide
+three functions in NIRApost to evaluate and visualize the stability of
+NIRA results. Specifically:</p>
+<p>The BootNIRAresult() function invokes the simulateResponses function
+from the NodeIdentifyR package, which is designed for simulating
+interventions. By utilizing the original threshold parameter vector
+(thresholds parameter) and edge weight matrix (edge_weights parameter)
+extracted from the Ising network, along with specifying the intervention
+type (perturbation_type parameter, either “aggravating” or
+“alleviating”) and intervention intensity
+(amount_of_SDs_perturbation parameter, defaulting to 2 standard
+deviations), the function simulates both the original sample and the
+samples subjected to simulated interventions on each node. The ability
+of BootNIRAresult() to repeatedly simulate the original sample stems
+from its fifth parameter, nboots, which determines the number of
+iterations for repeated simulations. This process generates a large
+number of sample pairs (i.e., n simulated intervention samples and one
+simulated original sample) through nboots repetitions. Given the
+substantial time cost associated with serial computation,
+the BootNIRAresult() function also offers an option for parallel
+processing. The sixth parameter, parallel, when set to TRUE, enables
+parallel computing, with the seventh parameter, ncores, specifying the
+number of cores used. If serial computation is preferred, ncores should
+be set to NULL.</p>
+<p>After obtaining 1,000 repeated simulated sample pairs using
+the BootNIRAresult() function, the next step involves computing
+stability metrics based on these pairs. The findmaxn() function analyzes
+the differences in network intervention effects generated during the
+repeated simulation process, identifying which nodes exhibit the most
+significant differences compared to the original network across multiple
+simulations and calculating their frequency and relative proportions.
+Specifically, the findmaxn() function takes two parameters: the
+first, Bootresult, inputs the output of BootNIRAresult(), while the
+second, n, specifies the top-n largest differences to consider
+(defaulting to 3). This function examines the frequency of intervention
+effects for each node at the 1st, 2nd, …, n-th largest difference
+positions. For example, if n is set to 3, the function will only compute
+the frequency of each node appearing among the top three positions in
+terms of intervention effect magnitude. Observing these frequencies
+reveals the stability of a node’s intervention effect in NIRA.</p>
+<p>Building on this, the plotmaxn() function is specifically designed to
+visualize the results of the findmaxn() analysis, providing an intuitive
+representation of node intervention effect stability. By inputting the
+output of findmaxn() into the first parameter, maxn, users can flexibly
+control the range of difference levels displayed using
+the low and high parameters, which support any reasonable range setting.
+For instance, to visualize the frequencies of nodes ranked from top 1 to
+top 5, users need only set low to 1 and high to 5.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="co">#parallel code</span></span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>Bootresult<span class="ot">&lt;-</span><span class="fu">BootNIRAresult</span>(edgeWeightMatrix,thresholdVector,<span class="st">&quot;alleviating&quot;</span>,<span class="dv">2</span>,<span class="dv">100</span>,<span class="at">parallel =</span> <span class="cn">TRUE</span>, <span class="at">ncores =</span> <span class="dv">6</span>)<span class="co">#Perform parallel and repeated simulation interventions with 6 cores for 100 times. For demonstration purposes, only 100 times will be repeated here</span></span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a></span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a><span class="co">#serial code</span></span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a><span class="co">#Bootresult&lt;-BootNIRAresult(edgeWeightMatrix,thresholdVector,&quot;alleviating&quot;,2,100,parallel = FALSE, ncores = NULL)#It is worth noting that serial has a timeline, but parallel does not</span></span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a>repeat_node <span class="ot">&lt;-</span> <span class="fu">findmaxn</span>(Bootresult,<span class="at">n=</span><span class="dv">7</span>)<span class="co">#Extract the percentage and frequency of each node appearing in the top n absolute mean difference rankings between post-intervention simulated samples and the original simulated sample.</span></span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a><span class="fu">plotmaxn</span>(repeat_node,<span class="at">low=</span><span class="dv">1</span>,<span class="at">high=</span><span class="dv">7</span>)<span class="co">#Generate stability plots of node ranking orders.</span></span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p>##Moderation Effect Test</p>
+<p>Moderation effect testing is essential for NIRA (Node-Specific
+Intervention Robustness Assessment). This necessity arises from the
+fundamental structure of NIRA’s simulation process:</p>
+<p>Original Sample Simulation: Generated directly using the original
+edge weight matrix and threshold parameter vector.</p>
+<p>Intervention Sample Simulation: Generated using the original edge
+weight matrix but with modified threshold parameters (i.e., perturbed
+node intercepts).</p>
+<p>This framework introduces a critical question: When altering a node’s
+intercept, do the edge weights between other nodes remain unchanged?
+This is precisely the issue of moderation effects. If such effects exist
+(e.g., node A moderates the relationship between nodes B and C), then
+reducing node A’s intercept (making it more likely to be 0) would
+inherently alter the B–C interaction. In such cases, continuing to use
+the original weight matrix for post-intervention simulations becomes
+theoretically inappropriate.</p>
+<p>Thus, testing for moderation effects constitutes a core prerequisite
+for NIRA. Only when the network exhibits minimal or no moderation
+effects can the intervention results be considered reliable.</p>
+<p>To address this, NIRApost provides a dedicated function that:</p>
+<p>1)Leverages the mgm package to construct moderated network models
+(via mgm()).</p>
+<p>2)Employs resampling techniques (resample()) to assess result
+stability.</p>
+<p>3)Repeats this process node-wise to quantify moderation effects
+across the entire network.</p>
+<p>we developed a function named run_mgmm_analysis() to implement this
+functionality. This function primarily employs the mgm function from
+the mgm package to construct a moderated network analysis and performs
+repeated resampling via resample to assess the stability of the
+moderating effects. A more detailed procedure involves iteratively
+treating each node in the network as a moderator variable, testing its
+moderating effect on every pairwise interaction between the remaining
+nodes. This process is repeated for every node in the network. Finally,
+resampling is conducted to generate as many samples as possible to
+evaluate the stability of the moderating effects. Only those moderating
+effects that pass the stability test are considered statistically
+reliable. Specifically, the run_mgmm_analysis() function takes five
+parameters: The first parameter, data, is used to input the dataset for
+network construction. The second parameter, plot_results, is a logical
+argument. When set to TRUE, the function exports all moderated network
+graphs to the current working directory; no output is generated when set
+to FALSE. The third and fourth parameters are used in the construction
+of the moderated network analysis. The rule parameter specifies whether
+the “OR” or “AND” rule is applied when building the moderated network,
+consistent with the rules introduced in the Ising network.
+The lambdaGam parameter represents the hyperparameter for EBIC (Extended
+Bayesian Information Criterion), which is used by default for parameter
+selection, with a default value of 0.25. The final parameter, nB,
+defines the number of resampling iterations. Given that the stability
+test for moderating effects across the entire network can be extremely
+time-consuming, especially when the number of nodes is large, the
+default resampling count is set to 100. Upon execution,
+the run_mgmm_analysis() function returns a list containing the
+statistically significant moderating effects in the network. If an empty
+list is returned, it indicates that no stable moderating effects were
+detected in the network.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a>sig_moder<span class="ot">&lt;-</span><span class="fu">run_mgmm_analysis</span>(<span class="at">data=</span><span class="fu">as.matrix</span>(single_gds), <span class="at">plot_results =</span> <span class="cn">FALSE</span>,<span class="at">rule =</span> <span class="st">&quot;AND&quot;</span>, <span class="at">lambdaGam =</span> <span class="fl">0.25</span>, <span class="at">nB =</span> <span class="dv">10</span>)<span class="co">#Iteratively calculate the moderation effect of each node in the network.The purpose of the demonstration is to set nB to 10</span></span></code></pre></div>
+<pre><code>## 
+## ------ Running analysis with Moderator 1 ------
+##   |                                                                              |                                                                      |   0%  |                                                                              |----------                                                            |  14%  |                                                                              |--------------------                                                  |  29%  |                                                                              |------------------------------                                        |  43%  |                                                                              |----------------------------------------                              |  57%  |                                                                              |--------------------------------------------------                    |  71%  |                                                                              |------------------------------------------------------------          |  86%  |                                                                              |----------------------------------------------------------------------| 100%
+## Note that the sign of parameter estimates is stored separately; see ?mgm  |                                                                              |                                                                      |   0%  |                                                                              |-------                                                               |  10%  |                                                                              |--------------                                                        |  20%  |                                                                              |---------------------                                                 |  30%  |                                                                              |----------------------------                                          |  40%  |                                                                              |-----------------------------------                                   |  50%  |                                                                              |------------------------------------------                            |  60%  |                                                                              |-------------------------------------------------                     |  70%  |                                                                              |--------------------------------------------------------              |  80%  |                                                                              |---------------------------------------------------------------       |  90%  |                                                                              |----------------------------------------------------------------------| 100%
+## ------ Running analysis with Moderator 2 ------
+##   |                                                                              |                                                                      |   0%  |                                                                              |----------                                                            |  14%  |                                                                              |--------------------                                                  |  29%  |                                                                              |------------------------------                                        |  43%  |                                                                              |----------------------------------------                              |  57%  |                                                                              |--------------------------------------------------                    |  71%  |                                                                              |------------------------------------------------------------          |  86%  |                                                                              |----------------------------------------------------------------------| 100%
+## Note that the sign of parameter estimates is stored separately; see ?mgm  |                                                                              |                                                                      |   0%  |                                                                              |-------                                                               |  10%  |                                                                              |--------------                                                        |  20%  |                                                                              |---------------------                                                 |  30%  |                                                                              |----------------------------                                          |  40%  |                                                                              |-----------------------------------                                   |  50%  |                                                                              |------------------------------------------                            |  60%  |                                                                              |-------------------------------------------------                     |  70%  |                                                                              |--------------------------------------------------------              |  80%  |                                                                              |---------------------------------------------------------------       |  90%  |                                                                              |----------------------------------------------------------------------| 100%
+## ------ Running analysis with Moderator 3 ------
+##   |                                                                              |                                                                      |   0%  |                                                                              |----------                                                            |  14%  |                                                                              |--------------------                                                  |  29%  |                                                                              |------------------------------                                        |  43%  |                                                                              |----------------------------------------                              |  57%  |                                                                              |--------------------------------------------------                    |  71%  |                                                                              |------------------------------------------------------------          |  86%  |                                                                              |----------------------------------------------------------------------| 100%
+## Note that the sign of parameter estimates is stored separately; see ?mgm  |                                                                              |                                                                      |   0%  |                                                                              |-------                                                               |  10%  |                                                                              |--------------                                                        |  20%  |                                                                              |---------------------                                                 |  30%  |                                                                              |----------------------------                                          |  40%  |                                                                              |-----------------------------------                                   |  50%  |                                                                              |------------------------------------------                            |  60%  |                                                                              |-------------------------------------------------                     |  70%  |                                                                              |--------------------------------------------------------              |  80%  |                                                                              |---------------------------------------------------------------       |  90%  |                                                                              |----------------------------------------------------------------------| 100%
+## ------ Running analysis with Moderator 4 ------
+##   |                                                                              |                                                                      |   0%  |                                                                              |----------                                                            |  14%  |                                                                              |--------------------                                                  |  29%  |                                                                              |------------------------------                                        |  43%  |                                                                              |----------------------------------------                              |  57%  |                                                                              |--------------------------------------------------                    |  71%  |                                                                              |------------------------------------------------------------          |  86%  |                                                                              |----------------------------------------------------------------------| 100%
+## Note that the sign of parameter estimates is stored separately; see ?mgm  |                                                                              |                                                                      |   0%  |                                                                              |-------                                                               |  10%  |                                                                              |--------------                                                        |  20%  |                                                                              |---------------------                                                 |  30%  |                                                                              |----------------------------                                          |  40%  |                                                                              |-----------------------------------                                   |  50%  |                                                                              |------------------------------------------                            |  60%  |                                                                              |-------------------------------------------------                     |  70%  |                                                                              |--------------------------------------------------------              |  80%  |                                                                              |---------------------------------------------------------------       |  90%  |                                                                              |----------------------------------------------------------------------| 100%
+## ------ Running analysis with Moderator 5 ------
+##   |                                                                              |                                                                      |   0%  |                                                                              |----------                                                            |  14%  |                                                                              |--------------------                                                  |  29%  |                                                                              |------------------------------                                        |  43%  |                                                                              |----------------------------------------                              |  57%  |                                                                              |--------------------------------------------------                    |  71%  |                                                                              |------------------------------------------------------------          |  86%  |                                                                              |----------------------------------------------------------------------| 100%
+## Note that the sign of parameter estimates is stored separately; see ?mgm  |                                                                              |                                                                      |   0%  |                                                                              |-------                                                               |  10%  |                                                                              |--------------                                                        |  20%  |                                                                              |---------------------                                                 |  30%  |                                                                              |----------------------------                                          |  40%  |                                                                              |-----------------------------------                                   |  50%  |                                                                              |------------------------------------------                            |  60%  |                                                                              |-------------------------------------------------                     |  70%  |                                                                              |--------------------------------------------------------              |  80%  |                                                                              |---------------------------------------------------------------       |  90%  |                                                                              |----------------------------------------------------------------------| 100%
+## ------ Running analysis with Moderator 6 ------
+##   |                                                                              |                                                                      |   0%  |                                                                              |----------                                                            |  14%  |                                                                              |--------------------                                                  |  29%  |                                                                              |------------------------------                                        |  43%  |                                                                              |----------------------------------------                              |  57%  |                                                                              |--------------------------------------------------                    |  71%  |                                                                              |------------------------------------------------------------          |  86%  |                                                                              |----------------------------------------------------------------------| 100%
+## Note that the sign of parameter estimates is stored separately; see ?mgm  |                                                                              |                                                                      |   0%  |                                                                              |-------                                                               |  10%  |                                                                              |--------------                                                        |  20%  |                                                                              |---------------------                                                 |  30%  |                                                                              |----------------------------                                          |  40%  |                                                                              |-----------------------------------                                   |  50%  |                                                                              |------------------------------------------                            |  60%  |                                                                              |-------------------------------------------------                     |  70%  |                                                                              |--------------------------------------------------------              |  80%  |                                                                              |---------------------------------------------------------------       |  90%  |                                                                              |----------------------------------------------------------------------| 100%
+## ------ Running analysis with Moderator 7 ------
+##   |                                                                              |                                                                      |   0%  |                                                                              |----------                                                            |  14%  |                                                                              |--------------------                                                  |  29%  |                                                                              |------------------------------                                        |  43%  |                                                                              |----------------------------------------                              |  57%  |                                                                              |--------------------------------------------------                    |  71%  |                                                                              |------------------------------------------------------------          |  86%  |                                                                              |----------------------------------------------------------------------| 100%
+## Note that the sign of parameter estimates is stored separately; see ?mgm  |                                                                              |                                                                      |   0%  |                                                                              |-------                                                               |  10%  |                                                                              |--------------                                                        |  20%  |                                                                              |---------------------                                                 |  30%  |                                                                              |----------------------------                                          |  40%  |                                                                              |-----------------------------------                                   |  50%  |                                                                              |------------------------------------------                            |  60%  |                                                                              |-------------------------------------------------                     |  70%  |                                                                              |--------------------------------------------------------              |  80%  |                                                                              |---------------------------------------------------------------       |  90%  |                                                                              |----------------------------------------------------------------------| 100%</code></pre>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="fu">print</span>(sig_moder<span class="sc">$</span>significant_moderators)<span class="co">#Print the results of significant moderation effects</span></span></code></pre></div>
+<pre><code>## $Moderator_2
+## $Moderator_2$node
+## [1] 2
+## 
+## $Moderator_2$significant_edges
+## [1] 17
+## 
+## $Moderator_2$interaction_details
+##   Variable A   Variable B         Mean      qtl_low     qtl_high      propLtZ 
+##         6.00         7.00         0.17         0.00         0.25         0.80 
+##         &lt;NA&gt;         &lt;NA&gt;     Mod_Mean  Mod_qtl_low Mod_qtl_high  Mod_propLtZ 
+##         6.00         7.00         0.45         0.32         0.63         1.00 
+## 
+## 
+## $Moderator_6
+## $Moderator_6$node
+## [1] 6
+## 
+## $Moderator_6$significant_edges
+## [1] 21
+## 
+## $Moderator_6$interaction_details
+##   Variable A   Variable B         Mean      qtl_low     qtl_high      propLtZ 
+##         2.00         7.00         0.04         0.00         0.19         0.20 
+##         &lt;NA&gt;         &lt;NA&gt;     Mod_Mean  Mod_qtl_low Mod_qtl_high  Mod_propLtZ 
+##         2.00         7.00         0.46         0.34         0.69         1.00</code></pre>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
