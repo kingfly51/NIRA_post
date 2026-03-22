@@ -2,13 +2,13 @@
 The full set of code from the Simulating Interventions for Cross-Sectional Network Models: An R Tutorial article is stored here and is mainly used to perform single network NIRA and dual network NIRA. Among them, the single_gds_NIRA.R file is the complete set of code appearing in the article, and the Supplementary Material Code. R is the code used in the supplementary materials of the article.
 
 
-##1.What are the reasons for using NIRA? ##
+## 1. Why use NIRA?##
 
-(1)Traditional centrality indices (e.g., strength centrality) only reflect structural information, failing to capture causal directional effects between nodes (e.g., in-influence vs. out-influence). NIRA resolves this by simulating interventions to directly evaluate causal impacts.
+(1) Traditional centrality indices (e.g., strength centrality) only reflect structural information and may not fully capture directional influence patterns between nodes (e.g., in-influence vs. out-influence). NIRA addresses this by simulating interventions to estimate projected impacts on the network.
 
-(2)By simulating node removal/adjustment (e.g., setting node activation probability to 0), NIRA quantifies each node’s global effect on the network, avoiding reliance on centrality indices alone (e.g., high-centrality nodes may not be optimal targets).
+(2) By simulating node removal/adjustment (e.g., setting node activation probability to 0), NIRA quantifies each node's projected global effect on the network, complementing centrality-based approaches (e.g., high-centrality nodes may not always be projected optimal targets).
 
-(3)Cross-sectional models lack explicit causal pathways. NIRA infers latent causal relationships through simulated interventions, aiding in identifying core/bridging symptoms.
+(3) Cross-sectional models lack explicit causal pathways. NIRA infers potential relationships through simulated interventions, which may aid in identifying core or bridging symptoms.
 
 
 
