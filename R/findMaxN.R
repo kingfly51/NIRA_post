@@ -1,0 +1,147 @@
+#' Compute Node Ranking Frequencies Across Simulation Repetitions
+#'
+#' @description
+#' For each simulation repetition stored in a \code{\link{stabilityNIRAtest}}
+#' result, identifies the top-\eqn{n} nodes with the largest absolute
+#' mean difference from the original (unperturbed) simulated network.
+#' The function then aggregates these rankings across all repetitions,
+#' returning both count frequencies and proportions.
+#'
+#' High and consistent frequency in the top-1 position across many
+#' independent repetitions is the key stability criterion: it indicates
+#' that a node's intervention effect is robust to different random seeds
+#' and can be trusted as the primary simulation target.
+#'
+#' @param simResult A \code{list} produced by \code{\link{stabilityNIRAtest}}.
+#'   Must contain a numeric matrix named \code{mean} with at least one
+#'   column named \code{"original"} (the unperturbed condition) and one or
+#'   more additional columns (one per intervention node).
+#'   Rows of \code{mean} correspond to individual simulation repetitions.
+#' @param n Positive integer.  Number of top-ranked positions to track.
+#'   For a network with \eqn{p} nodes, \code{n} must be \eqn{\leq p}.
+#'   Default: \code{3}.  Use \code{n = p} to capture the complete
+#'   ranking.  The tutorial paper uses \code{n = 7} for a 7-node network.
+#'
+#' @return
+#' A \code{data.frame} with one row per intervention node (rows named by
+#' node label) and \eqn{2n} columns organised in two blocks:
+#'
+#' \strong{Block 1 — Proportions} (\code{percenttop_1} … \code{percenttop_n}):
+#' \describe{
+#'   \item{\code{percenttop_k}}{Proportion of repetitions in which the
+#'     node appeared at rank \eqn{k} (i.e., had the \eqn{k}-th largest
+#'     absolute difference from the original).  Range: \eqn{[0, 1]}.
+#'     Values close to 1 in column \code{percenttop_1} indicate a highly
+#'     stable top intervention target.}
+#' }
+#'
+#' \strong{Block 2 — Counts} (\code{repeattop_1} … \code{repeattop_n}):
+#' \describe{
+#'   \item{\code{repeattop_k}}{Absolute count of repetitions in which the
+#'     node appeared at rank \eqn{k}.  Equals
+#'     \code{percenttop_k * nReps}.}
+#' }
+#'
+#' @section Method Recommendations:
+#' \tabular{lll}{
+#'   \strong{Network size} \tab \strong{Recommended n} \tab \strong{Rationale} \cr
+#'   3–5 nodes \tab \code{n = p} \tab Show all ranks \cr
+#'   6–10 nodes \tab \code{n = 5} or \code{n = p} \tab
+#'     \code{plotMaxN} remains readable \cr
+#'   > 10 nodes \tab \code{n = 5} \tab
+#'     Larger \code{n} clutters the stability plot \cr
+#' }
+#'
+#' A stable result is characterised by:
+#' \itemize{
+#'   \item One node with \code{percenttop_1} clearly above the others.
+#'   \item Little variation across repetitions in which node occupies
+#'     rank 1.
+#' }
+#' If no node dominates rank 1, consider increasing \code{nreps} in
+#' \code{\link{stabilityNIRAtest}} or reporting the top-3 nodes with their
+#' associated proportions.
+#'
+#' @examples
+#' ## Example 1: compute rank frequencies after stabilityNIRAtest
+#' \dontrun{
+#' data("single_gds")
+#' gs_fit <- bootnet::estimateNetwork(single_gds,
+#'             default = "IsingFit", rule = "AND")
+#' simResult <- stabilityNIRAtest(
+#'   gs_fit$graph, gs_fit$intercepts, "alleviating", 2,
+#'   nReps = 100, seed = 2025)
+#'
+#' node_ranks <- findMaxN(simResult, n = 7)
+#' print(node_ranks)
+#'
+#' # Identify the most stable node (highest percenttop_1)
+#' node_ranks[which.max(node_ranks$percenttop_1), ]
+#' }
+#'
+#' ## Example 2: visualise the result
+#' \dontrun{
+#' node_ranks <- findMaxN(simResult, n = 7)
+#' plotMaxN(node_ranks, low = 1, high = 7)
+#' }
+#'
+#' ## Example 3: using the backward-compatible alias
+#' \dontrun{
+#' # findMaxN() is a backward-compatible wrapper around findMaxN()
+#' node_ranks <- findMaxN(simResult, n = 3)
+#' }
+#'
+#' @author
+#' Fei Wang \email{bjnwangfei0501@@outlook.com}
+#'
+#' @seealso
+#' \itemize{
+#'   \item \code{\link{stabilityNIRAtest}} — generates the required input.
+#'   \item \code{\link{plotMaxN}} — visualises the output as a stacked
+#'     bar plot.
+#'   \item \code{\link[base]{apply}} — used internally for row-wise rank
+#'     computation.
+#' }
+#'
+#' @importFrom utils head
+#' @export
+findMaxN <- function(simResult, n = 3) {
+
+  if (!is.list(simResult) || !"mean" %in% names(simResult))
+    stop("simResult must be the list output of stabilityNIRAtest(), ",
+         "containing at least a 'mean' matrix.")
+  if (!"original" %in% colnames(simResult$mean))
+    stop("simResult$mean must contain a column named 'original'.")
+
+  orig  <- simResult$mean[, "original"]
+  other <- simResult$mean[,
+             !colnames(simResult$mean) %in% "original",
+             drop = FALSE]
+
+  if (n > ncol(other))
+    stop("n (", n, ") exceeds the number of intervention nodes (",
+         ncol(other), ").")
+
+  # Absolute difference from original for each repetition x node
+  md <- apply(other, 2, function(x) abs(orig - x))
+
+  # For each repetition, identify the top-n nodes
+  top_n_names <- function(row)
+    colnames(md)[order(row, decreasing = TRUE)[seq_len(n)]]
+  tdf         <- as.data.frame(t(apply(md, 1, top_n_names)))
+  colnames(tdf) <- paste0("repeattop_", seq_len(n))
+
+  # Count frequencies
+  df           <- data.frame(matrix(0L, nrow = ncol(other), ncol = n))
+  rownames(df) <- colnames(other)
+  colnames(df) <- colnames(tdf)
+  for (i in seq_len(n)) {
+    ct <- table(tdf[, i])
+    for (v in names(ct)) df[v, i] <- ct[v]
+  }
+
+  # Proportions
+  pct           <- df / nrow(simResult$mean)
+  colnames(pct) <- paste0("percenttop_", seq_len(n))
+  cbind(pct, df)
+}
