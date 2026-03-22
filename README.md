@@ -2,7 +2,8 @@
 The full set of code from the Simulating Interventions for Cross-Sectional Network Models: An R Tutorial article is stored here and is mainly used to perform single network NIRA and dual network NIRA. Among them, the single_gds_NIRA.R file is the complete set of code appearing in the article, and the Supplementary Material Code. R is the code used in the supplementary materials of the article.
 
 
-## 1. Why use NIRA?##
+
+##1. Why use NIRA?##
 
 (1) Traditional centrality indices (e.g., strength centrality) only reflect structural information and may not fully capture directional influence patterns between nodes (e.g., in-influence vs. out-influence). NIRA addresses this by simulating interventions to estimate projected impacts on the network.
 
