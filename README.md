@@ -51,8 +51,6 @@ The man/ directory contains the help documentation files for NIRApost's core fun
 help(permutationNIRAtest,package = "NIRApost")
 
 
-The Meta/ directory contains vignette metadata files, while the vignettes/ folder stores the source R Markdown documents for vignettes. These directories house intermediate files generated during the construction of NIRApost's tutorial materials.
-
 
 The R/ directory contains all core functions of the NIRApost package.
 
