@@ -1,0 +1,61 @@
+Package: NIRApost
+Type: Package
+Title: Post-Processing Tools for the NodeIdentifyR Algorithm (NIRA)
+Version: 1.1.0
+Date: 2026-03-21
+Authors@R: c(
+    person("Fei",      "Wang",  email = "bjnwangfei0501@outlook.com",
+           role = c("aut", "cre")),
+    person("Yiming",   "Wu",    role = "aut"),
+    person("Yibo",     "Wu",    role = "aut"),
+    person("Tingshao", "Zhu",   role = "aut"))
+Description: Provides a three-step validation pipeline for the
+    NodeIdentifyR Algorithm (NIRA) in Ising network analysis:
+    (1) moderation effect testing as a theoretical prerequisite
+    (runMgmmAnalysis), (2) permutation-based significance testing with
+    multiple-comparison correction (permutationNIRAtest, plotMeanNIRA),
+    and (3) repeated-simulation stability assessment (stabilityNIRAtest,
+    findMaxN, plotMaxN). Missing data utilities (checkMissing,
+    imputeData) and five real-world datasets are included.
+    Backward-compatible aliases preserve all original tutorial-article
+    function names.
+License: GPL (>= 3)
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.2
+Depends:
+    R (>= 4.1.0)
+Imports:
+    dplyr (>= 1.0.0),
+    tidyr (>= 1.1.0),
+    ggplot2 (>= 3.3.0),
+    ggsci (>= 2.9),
+    magrittr (>= 2.0.0),
+    rlang (>= 0.4.0),
+    mgm (>= 1.2.0),
+    nodeIdentifyR,
+    parallel,
+    progress (>= 1.2.0),
+    VIM (>= 6.0.0),
+    missForest (>= 1.4),
+    mice (>= 3.0.0),
+    rpart (>= 4.1.0),
+    e1071 (>= 1.7.0),
+    nnet (>= 7.3.0),
+    stats,
+    utils,
+    grDevices
+Suggests:
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    pagedown,
+    bootnet,
+    qgraph,
+    readxl
+Remotes:
+    JasperNaberman/nodeIdentifyR
+VignetteBuilder: knitr
+URL: https://github.com/kingfly51/NIRA_post
+BugReports: https://github.com/kingfly51/NIRA_post/issues
+
