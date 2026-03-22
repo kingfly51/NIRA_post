@@ -1,5 +1,5 @@
 # NIRA_post
-The full set of code from the Simulating Interventions for Cross-Sectional Network Models: An R Tutorial article is stored here and is mainly used to perform single network NIRA and dual network NIRA. Among them, the single_gds_NIRA.R file is the complete set of code appearing in the article, and the Supplementary Material Code. R is the code used in the supplementary materials of the article.
+The full set of code from the Simulating Interventions for Cross-Sectional Network Models: A Methodological Extension via NIRApost article is stored here and is mainly used to perform single network NIRA and dual network NIRA. Among them, the single_gds_NIRA.R file is the complete set of code appearing in the article, and the Supplementary Material Code. R is the code used in the supplementary materials of the article.
 
 
 
