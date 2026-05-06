@@ -7,7 +7,7 @@ The full set of code from the Simulation Intervention for Cross-Sectional Networ
 
 (1) Traditional centrality indices (e.g., strength centrality) only reflect structural information and may not fully capture directional influence patterns between nodes (e.g., in-influence vs. out-influence). NIRA addresses this by simulating interventions to estimate projected impacts on the network.
 
-(2) By simulating node removal/adjustment (e.g., setting node activation probability to 0), NIRA quantifies each node's projected global effect on the network, complementing centrality-based approaches (e.g., high-centrality nodes may not always be projected optimal targets).
+(2) By simulating node removal/adjustment, NIRA quantifies each node's projected global effect on the network, complementing centrality-based approaches (e.g., high-centrality nodes may not always be projected optimal targets).
 
 (3) Cross-sectional models lack explicit causal pathways. NIRA infers potential relationships through simulated interventions, which may aid in identifying core or bridging symptoms.
 
@@ -43,7 +43,7 @@ data("single_gds")
 The data_raw/ directory stores the original .xlsx files for all five datasets.
 
 
-The doc/ directory contains three key files: (1)NIRApost.html: A self-contained webpage providing a comprehensive tutorial on using the NIRApost package.(2) NIRApost.Rmd: The source R Markdown document used to generate the tutorial, containing all code, text, and formatting instructions.(3) NIRApost.R: An R script version of the tutorial code (without Markdown text), suitable for direct execution or adaptation.
+The doc/ directory contains four key files: (1)NIRApost-tutorial.html: A self-contained webpage providing a comprehensive tutorial on using the NIRApost package.(2) NIRApost-tutorial.pdf: The PDF document used to generate the tutorial, containing all code, text, and formatting instructions.(3) NIRApost.R: An R script version of the tutorial code (without Markdown text), suitable for direct execution or adaptation.(4) index.html:Main interface, when the browser is opened, it can directly jump to three other files
 
 
 The man/ directory contains the help documentation files for NIRApost's core functions. Taking the permutationNIRAtest() function as an example, users can access its documentation in R using the following command:
