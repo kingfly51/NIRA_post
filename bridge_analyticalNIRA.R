@@ -37,9 +37,19 @@ thresholdVector<-gs_fit$intercepts#提取出逻辑回归的截取项作为阈值
 
 
 
-####### 3.nodeIdentifyR#######
+
+####### nodeIdentifyR#######
 library(NIRApost)
-source("D:/Rdaima/AMPPS_NIRA/fourth_revise/Cui_comments/NIRA_post-main/R/analyticalBridgeNIRAtest.R")
+
+# Calculate all stable moderation effects present in the network
+set.seed(2025)
+sig_moder <- runMgmmAnalysis(data = as.matrix(GS_non_null),
+                             plotResults = FALSE,
+                             rule = "AND",
+                             lambdaGam = 0.25,
+                             nB = 10)
+# Print out the moderation effects
+print(sig_moder$significant_moderators)
 
 groups <- rep(c("JKXW","MH"),c(8,3))
 
