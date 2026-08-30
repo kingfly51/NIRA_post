@@ -1,8 +1,8 @@
 Package: NIRApost
 Type: Package
 Title: Post-Processing Tools for the NodeIdentifyR Algorithm (NIRA)
-Version: 1.1.0
-Date: 2026-03-21
+Version: 1.2.1
+Date: 2026-08-29
 Authors@R: c(
     person("Fei",      "Wang",  email = "bjnwangfei0501@outlook.com",
            role = c("aut", "cre")),
@@ -15,7 +15,11 @@ Description: Provides a three-step validation pipeline for the
     (runMgmmAnalysis), (2) permutation-based significance testing with
     multiple-comparison correction (permutationNIRAtest, plotMeanNIRA),
     and (3) repeated-simulation stability assessment (stabilityNIRAtest,
-    findMaxN, plotMaxN). Missing data utilities (checkMissing,
+    findMaxN, plotMaxN). An exact analytical workflow
+    (analyticalNIRAtest) computes intervention mean activation by
+    enumerating all Ising microstates (no Monte Carlo error) and
+    quantifies the remaining sampling uncertainty by resampling the
+    original dataset. Missing data utilities (checkMissing,
     imputeData) and five real-world datasets are included.
     Backward-compatible aliases preserve all original tutorial-article
     function names.
