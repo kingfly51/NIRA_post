@@ -96,7 +96,6 @@ condPlot(fit1, to = "UW", from = "IRR")
 
 
 #####1.7 Simulation intervention based on analytical NodeIdentifyR algorithm######
-source('D:/Rdaima/AMPPS_NIRA/fourth_revise/Cui_comments/NIRA_post-main/R/analyticalNIRAtest.r')
 # Extract the edge weight matrix component from the previously fitted Ising model
 edgeWeightMatrix <- fit$graph
 # Extract the intercept of the logistic regression as the threshold parameter vector
