@@ -1,11 +1,12 @@
-#####注意！更新版的NIRApost1.2.0加入了基于解析解的工作流，NIRApost1.1.0中使用蒙落卡罗模拟
-#进行近似，所以需要进行稳定性检验，但是Cui等人（2026）指出无需采用包含蒙特卡罗误差的模拟方法，
-#因为存在一种分析性方法可提供无误差的解决方案。同时这种方式计算非常迅速，于是更新版的NIRApost1.2.0中加入了一个新的函数
-#analyticalNIRAtest用于基于解析解的NIRA过程，这个函数包含了计算解析解、不确定性区间估计（提供了bootstrap检验
-#以及置换检验两个版本），以及画图功能。
-#因此NIRApst提出了两种不同的NIRA工作流：
-#第一种就是single_gds_NIRA.R文件中展示的NIRA四步法结合调节效应检验、置换检验以及稳定性检验。
-#第二种就是single_gad_analyticaNIRA.R文件中展示的调节效应检验结合基于解析解的NIRA。
+#Note! The updated version NIRApost 1.2.0 introduces a workflow based on analytical solutions. In NIRApost 1.1.0, 
+#Monte Carlo simulations were used for approximation, thus requiring stability checks. However, Cui et al. (2026)
+#pointed out that there is no need to employ simulation methods that incorporate Monte Carlo error, because an analytical method 
+#exists that provides an error-free solution. Moreover, this approach is computationally very fast. Therefore, the updated NIRApost 1.2.0 
+#includes a new function, analyticalNIRAtest, for the analytical solution-based NIRA procedure. This function encompasses the computation
+#of analytical solutions, uncertainty interval estimation (providing both bootstrap tests and permutation tests), and plotting capabilities.
+#Consequently, NIRApost now offers two distinct NIRA workflows:
+#The first is the four-step NIRA approach combined with moderation effect testing, permutation testing, and stability testing, as demonstrated in the single_gds_NIRA.R file.
+#The second is the moderation effect testing combined with analytical solution-based NIRA, as demonstrated in the single_gad_analyticalNIRA.R file.
 
 
 #####1.1 Install the required R packages#####
