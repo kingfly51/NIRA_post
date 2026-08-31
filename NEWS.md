@@ -30,7 +30,15 @@ moderation-effect prerequisite test.
   `analyticalBridgeNIRAtest()`.
 - **`permutationNIRAtest()` returns `$random`** — a new element comparing each
   node's simulated effect with a randomly chosen target node (rank-based
-  p-value, uncorrected), mirroring the analytical workflow.
+  p-value, uncorrected), paralleling the random-target test in the analytical
+  workflow.
+- **Direction-aware random-target scoring (`permutationNIRAtest(direction=)`)** —
+  the `$random` comparison can be scored by absolute effect (default,
+  `"abs"`), by raw effect for aggravating interventions (`"aggravating"`), or
+  by negated effect for alleviating interventions (`"alleviating"`). Passing
+  the same intervention direction as used in `simulateResponses` makes the
+  random-target result directly comparable with the direction-aware test in
+  `analyticalNIRAtest()` / `analyticalBridgeNIRAtest()`.
 - **Faster moderation-effect testing (`runMgmmAnalysis`)** — new `ncores`
   argument parallelises the candidate moderator nodes, giving an
   approximately `ncores`-fold speed-up on multi-core machines while producing

@@ -93,7 +93,8 @@ estimator.
 
 ## 3. How to use NIRApost
 
-For the complete tutorial, please check vignettes/NIRApost-tutorial.Rmd.
+There is a `NIRApost.html` file in the `doc` folder, which contains a simple
+tutorial on how to use NIRApost.
 
 ---
 
@@ -209,6 +210,13 @@ their resampling-based uncertainty:
   analytical solution makes every Δ deterministically non-zero, the H0: Δ = 0
   test is trivially non-significant for all nodes, whereas `percenttop_1`
   ranks which source is most consistently the strongest bridge target.
+  Note that, like `findMaxN()`, `percenttop_1` scores by *absolute* effect
+  (mirroring the classical stability metric). Under an alleviating
+  intervention a node whose effect runs counter to the intended direction
+  (positive Δ, e.g. a weak negative bridge edge) is still counted by its
+  magnitude; in practice such counter-directional effects are typically
+  negligible, but check the sign of `effect` when a node with a
+  counter-directional Δ has a high `percenttop_1`.
 
 **Reading the example output.** 睡太少 has by far the largest `percenttop_1`
 (0.514, i.e. it ranked first in 51.4% of the 1000 resamples), followed by
