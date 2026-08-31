@@ -43,12 +43,10 @@ library(NIRApost)
 
 # Calculate all stable moderation effects present in the network
 set.seed(2025)
+set.seed(2025)
 sig_moder <- runMgmmAnalysis(data = as.matrix(GS_non_null),
-                             plotResults = FALSE,
-                             rule = "AND",
-                             lambdaGam = 0.25,
-                             nB = 10)
-# Print out the moderation effects
+                               plotResults = FALSE, rule = "AND",
+                               lambdaGam = 0.25, nB = 10, ncores = 6)
 print(sig_moder$significant_moderators)
 
 groups <- rep(c("JKXW","MH"),c(8,3))
