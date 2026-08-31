@@ -93,8 +93,7 @@ estimator.
 
 ## 3. How to use NIRApost
 
-There is a `NIRApost.html` file in the `doc` folder, which contains a simple
-tutorial on how to use NIRApost.
+For the complete tutorial, please check vignettes/NIRApost-tutorial.Rmd
 
 ---
 
