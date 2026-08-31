@@ -72,6 +72,14 @@ mental-health symptoms), `analyticalBridgeNIRAtest()` intervenes on each node
 of a **source** community and computes the exact mean activation of the
 **outcome** community. See **Section 6** for a worked interpretation.
 
+As in the other workflows, the moderation-effect test
+(`runMgmmAnalysis()`) is a **prerequisite** and must be run on the **whole**
+network (both communities together) before the bridge intervention: the
+threshold-shift intervention model applies to the full joint distribution, and
+an intervention on a source node propagates through the entire network, so a
+moderator anywhere would invalidate the fixed-edge-weight assumption. The
+`Bridge_network_NIRA.R` script includes this step (Step 3).
+
 ### Consistent resampling estimator
 
 When network parameters are supplied (typically from
