@@ -91,6 +91,15 @@ test_that("stabilityNIRAtest: accepts nReps parameter", {
   expect_true("nReps" %in% names(formals(stabilityNIRAtest)))
 })
 
+## runMgmmAnalysis ------------------------------------------------------------
+test_that("runMgmmAnalysis: accepts ncores parameter", {
+  expect_true("ncores" %in% names(formals(runMgmmAnalysis)))
+})
+test_that("runMgmmAnalysis: rejects invalid ncores", {
+  expect_error(runMgmmAnalysis(matrix(0, 4, 3), ncores = 0))
+  expect_error(runMgmmAnalysis(matrix(0, 4, 3), ncores = 1.5))
+})
+
 ## imputeData -----------------------------------------------------------------
 test_that("imputeData: returns original data when no NAs", {
   df <- data.frame(A = 1:5, B = 6:10)
