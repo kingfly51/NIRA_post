@@ -367,12 +367,166 @@ res$plot
 
 ---
 
-## Summary: Two Workflows
+## Workflow 3: Bridge (Two-Community) NIRA — `analyticalBridgeNIRAtest`
+
+### What Is a Bridge Intervention?
+
+In bridge-network research the network is partitioned into **two communities**
+(e.g., health-behaviour nodes vs. mental-health symptom nodes), and the
+question is *which node of one community, when intervened upon, most strongly
+changes the activation of the other community*. The `Bridge_network_NIRA.R`
+script computes networktools bridge centrality first, then uses NIRA to
+intervene on each node of the source community (JKXW) and measures the total
+score of the outcome community (MH) as the downstream outcome.
+
+`analyticalBridgeNIRAtest()` is the exact analytical version of this
+procedure: it enumerates all 2^p microstates once, but the outcome statistic
+is restricted to the **outcome community's** activation count
+(Σ_{j∈B} s_j + p_B)/2. Intervening on a source node reweights the microstates
+exactly, so no re-enumeration is needed for the p_A source interventions.
+
+For this workflow we use a different dataset: `bridge_network.xlsx`
+(health-behaviour and mental-health items) is read and cleaned into
+`GS_non_null` as in `Bridge_network_NIRA.R`, and its Ising network is fitted
+with `bootnet::estimateNetwork()` to obtain `edgeWeightMatrix` and
+`thresholdVector`.
+
+### Prerequisite: Moderation-Effect Test on the Whole Network
+
+Before any bridge intervention, the moderation-effect test
+(`runMgmmAnalysis()`) must be run on the **entire** network (both communities
+together), exactly as in Workflow 1. The threshold-shift intervention model
+is a property of the full joint distribution, and an intervention on a source
+node propagates through the whole network — so a moderator *anywhere* would
+change edge weights during the intervention and invalidate the model. An
+empty `significant_moderators` list confirms the assumption holds.
+
+```{r bridge_moderation}
+# Whole-network moderation test (Step 3 of Bridge_network_NIRA.R).
+# ncores > 1 parallelises the p candidate moderator nodes (identical results
+# to the serial run); set ncores = 1 for serial execution.
+sig_moder <- runMgmmAnalysis(
+  data        = as.matrix(GS_non_null),
+  plotResults = FALSE,
+  rule        = "AND",
+  lambdaGam   = 0.25,
+  nB          = 10,          # use >= 100 for publication
+  ncores      = 6            # parallel over moderator nodes
+)
+# Empty list => no significant moderation => bridge NIRA is appropriate
+print(sig_moder$significant_moderators)
+```
+
+```{r bridge_workflow}
+groups <- rep(c("JKXW", "MH"), c(8, 3))      # 8 source + 3 outcome nodes
+
+res2 <- analyticalBridgeNIRAtest(
+  data                      = GS_non_null,    # binary data (N x p)
+  groups                    = groups,
+  intervention_group        = "JKXW",         # intervene on source nodes
+  outcome_group             = "MH",           # measure outcome community
+  perturbation_type         = "aggravating",
+  edge_weights              = edgeWeightMatrix,  # from bootnet (fit$graph)
+  thresholds                = thresholdVector,   # from bootnet (fit$intercepts)
+  amount_of_SDs_perturbation = 2,
+  nResample                 = 1000,           # 5000 recommended for publication
+  method                    = "bonferroni",
+  seed                      = 2025,
+  parallel                  = TRUE,
+  ncores                    = 6
+)
+```
+
+### How to Read the Output
+
+**`$exact`** — exact mean number of activated *outcome* nodes under the
+original network and under each one-node source intervention:
+
+```{r bridge_exact}
+res2$exact
+```
+
+**`$stat`** — per-source-node inference on the outcome community: exact mean
+activation, 95% CI, intervention effect Δ, Cohen's *d*, bootstrap SE/CI, the
+bootstrap *p*-value for H0: Δ = 0, its adjusted value, and `percenttop_1`
+(the proportion of resamples in which the node had the largest absolute
+effect on the outcome community):
+
+```{r bridge_stat}
+res2$stat
+```
+
+**`$random`** — the random-target test, restricted to the *source* community:
+for each source node, the (uncorrected) probability that a randomly chosen
+source node would produce an effect at least as large.
+
+```{r bridge_random}
+res2$random
+```
+
+**`$plot`** — the exact outcome-community mean activation of each condition
+with 95% CI error bars and significance stars.
+
+### Interpretation: What to Look At
+
+- **`mean_activation` is on the outcome-community scale** (0–p_B), not the
+  full-network scale. Read it as "expected number of activated *outcome*
+  nodes", not "total activated nodes". In the example, the MH community
+  (depression, anxiety, stress) is active at only ~0.65 nodes on average,
+  so most participants report at most one of the three symptoms.
+- **`effect` / Δ** is the difference between the outcome-community mean after
+  the intervention and the original value (from `$exact`). Values near 0 mean
+  the source node barely propagates to the outcome community (weak or absent
+  bridge edges).
+- **`p.adjust` tests H0: Δ = 0.** Because the analytical solution makes every
+  single-node effect deterministically non-zero, these *p*-values are usually
+  trivially non-significant for every node and are *not* the discriminating
+  output.
+- **`percenttop_1` is the discriminating metric.** It is the analytical
+  analogue of `findMaxN()`: the proportion of resamples in which the node
+  ranked first (largest absolute effect on the outcome community). A node
+  with `percenttop_1` far above the others is the most consistently strong
+  bridge target. In the example, 睡太少 (too little sleep) ranked first in
+  51.4% of resamples, ahead of 不吃早餐 (17.4%) and 独居 (12.9%).
+- **`$random`** answers "is node *i* a better target than a randomly chosen
+  source node?" within the source community. Large (uncorrected) *p*-values
+  mean no source node is demonstrably superior to a random source target.
+
+### How to Report in a Paper
+
+A concise bridge-NIRA results paragraph could read:
+
+> Using the analytical bridge-NIRA workflow, we intervened on each
+> health-behaviour node and computed the exact expected number of activated
+> mental-health symptoms (depression, anxiety, stress). In the original
+> network the outcome community was active at a mean of 0.65 nodes.
+> Aggravating intervention on 7 of the 8 behaviour nodes produced negligible
+> changes in mental-health activation (Δ < 0.004, all Bonferroni-adjusted
+> *p* = 1). Only intervening on too-little-sleep increased the expected
+> number of activated symptoms, by Δ = 0.039 (Cohen's *d* = 0.041), but this
+> effect was not statistically reliable (95% CI [−0.001, 0.158]; bootstrap
+> *p* = 0.489, adjusted *p* = 1). Too-little-sleep nevertheless ranked first
+> in 51.4% of the 1000 resamples (`percenttop_1`), suggesting it is the most
+> consistently promising bridge target, although its superiority over a
+> randomly chosen behaviour node did not reach significance.
+
+**Reporting checklist.** (1) State the outcome community and the scale of
+`mean_activation` (0–p_B). (2) Report the original pre-intervention value.
+(3) Report Δ, Cohen's *d*, 95% CI and adjusted *p*-value for each target (or
+at least the top-ranked ones). (4) Interpret `percenttop_1` as ranking
+stability, not significance. (5) Note the model assumption that the
+moderation-effect test (`runMgmmAnalysis()`) found no moderators, so a
+single-node intervention leaves all edge weights unchanged.
+
+---
+
+## Summary: Three Workflows
 
 | Workflow | Key steps | Primary function(s) | Purpose |
 |---|---|---|---|
 | **Workflow 1 (Monte Carlo)** | Moderation → Simulation → Permutation → Stability | `runMgmmAnalysis()`, `permutationNIRAtest()`, `stabilityNIRAtest()`, `findMaxN()`, `plotMaxN()` | Quantify Monte Carlo error |
 | **Workflow 2 (Analytical)** | Moderation → Analytical NIRA | `runMgmmAnalysis()`, `analyticalNIRAtest()` | Exact results + sampling-error uncertainty |
+| **Workflow 3 (Bridge)** | Moderation → Analytical bridge NIRA | `runMgmmAnalysis()`, `analyticalBridgeNIRAtest()` | Exact cross-community (source → outcome) intervention effects |
 
 ---
 
