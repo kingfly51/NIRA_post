@@ -40,6 +40,16 @@
 #'   \code{"bonferroni"} (default), \code{"BH"}, \code{"holm"},
 #'   \code{"hochberg"}, \code{"hommel"}, \code{"BY"}, \code{"fdr"},
 #'   \code{"none"}.
+#' @param direction Character string controlling how an intervention effect
+#'   is scored in the \code{$random} element:
+#'   \code{"abs"} (default) uses the absolute effect, so the node with the
+#'   largest \emph{magnitude} of change is "best" (mirrors
+#'   \code{\link{findMaxN}}); \code{"aggravating"} uses the raw effect
+#'   (largest increase is best); \code{"alleviating"} uses the negated effect
+#'   (largest decrease is best).  For consistency with the direction-aware
+#'   random-target test in \code{\link{analyticalNIRAtest}} /
+#'   \code{\link{analyticalBridgeNIRAtest}}, pass the same intervention
+#'   direction as used in \code{nodeIdentifyR::simulateResponses}.
 #'
 #' @return
 #' A named \code{list} with two elements:
@@ -74,11 +84,13 @@
 #'   \item{\code{random}}{A \code{data.frame} comparing each node's simulated
 #'     intervention effect with a randomly chosen intervention target.  For
 #'     each node, \code{effect} is its mean sum score minus the original, and
-#'     \code{p} is the proportion of other nodes with an absolute effect at
-#'     least as large (a rank-based permutation \eqn{p}-value across target
-#'     nodes, reported uncorrected).  This mirrors the \code{$permutation}
-#'     element of \code{\link{analyticalNIRAtest}} and answers "is node
-#'     \eqn{i} a better target than a random node?".}
+#'     \code{p} is the proportion of other nodes with a (direction-scored)
+#'     effect at least as large (a rank-based permutation \eqn{p}-value across
+#'     target nodes, reported uncorrected).  The scoring follows the
+#'     \code{direction} argument.  It answers "is node \eqn{i} a better target
+#'     than a random node?" and is consistent with the random-target test in
+#'     \code{\link{analyticalNIRAtest}} / \code{\link{analyticalBridgeNIRAtest}}
+#'     when \code{direction} matches the intervention direction.}
 #' }
 #'
 #' @section Method Recommendations:
@@ -145,7 +157,8 @@
 #' @importFrom stats p.adjust
 #' @importFrom rlang .data
 #' @export
-permutationNIRAtest <- function(gs_sumIsingSamplesLong, method = "bonferroni") {
+permutationNIRAtest <- function(gs_sumIsingSamplesLong, method = "bonferroni",
+                                direction = "abs") {
 
   if (!is.data.frame(gs_sumIsingSamplesLong))
     stop("Input must be a data.frame from ",
@@ -156,6 +169,8 @@ permutationNIRAtest <- function(gs_sumIsingSamplesLong, method = "bonferroni") {
                "BH", "BY", "fdr", "none")
   if (!method %in% valid_m)
     stop("Invalid method. Choose from: ", paste(valid_m, collapse = ", "))
+  if (!direction %in% c("abs", "aggravating", "alleviating"))
+    stop("'direction' must be 'abs', 'aggravating' or 'alleviating'.")
 
   # Pivot to wide format
   wide <- gs_sumIsingSamplesLong %>%
@@ -189,16 +204,26 @@ permutationNIRAtest <- function(gs_sumIsingSamplesLong, method = "bonferroni") {
 
   # Comparison with a randomly chosen intervention target.  For each node,
   # the effect is its simulated mean sum score minus the original; the
-  # permutation p-value is the proportion of other nodes with an absolute
-  # effect at least as large (a rank-based permutation across target nodes).
-  # This is analogous to the $permutation element of analyticalNIRAtest and
-  # is reported uncorrected.  Backward compatible: the existing $stat and
-  # $plot_data elements are unchanged.
+  # permutation p-value is the proportion of other nodes with an effect at
+  # least as large (a rank-based permutation across target nodes).  The
+  # "strength" used for the comparison follows 'direction':
+  #   - "abs"        (default): |effect| — the node with the largest absolute
+  #                  intervention effect is "best" (mirrors findMaxN).
+  #   - "aggravating":  effect  (positive) — the largest increase is best.
+  #   - "alleviating": -effect  (negative) — the largest decrease is best.
+  # This makes the element consistent with the direction-aware random-target
+  # test in analyticalNIRAtest / analyticalBridgeNIRAtest.  Reported
+  # uncorrected.  Backward compatible: the existing $stat and $plot_data
+  # elements are unchanged.
   random_eff <- sl$mean_other - pl$mean_original
   names(random_eff) <- rownames(sl)
+  rng <- switch(direction,
+                "abs"         = abs(random_eff),
+                "aggravating" = random_eff,
+                "alleviating" = -random_eff)
   random_p <- sapply(seq_len(nrow(sl)), function(i) {
-    others <- abs(random_eff[-i])
-    (1 + sum(others >= abs(random_eff[i]))) / nrow(sl)
+    others <- rng[-i]
+    (1 + sum(others >= rng[i])) / nrow(sl)
   })
   random <- data.frame(
     node   = rownames(sl),

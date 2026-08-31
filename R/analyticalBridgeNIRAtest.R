@@ -512,16 +512,21 @@ analyticalBridgeNIRAtest <- function(data,
     })
 
     # Random-target test: H0 = node i is not a better target than a randomly
-    # chosen SOURCE node.  The null pools the effects of the p_A - 1 other
-    # source nodes across all B resamples; the observed effect of node i is
-    # compared with that pool.  'sgn' aligns "better" with the hypothesised
-    # direction (positive for aggravating, negative for alleviating).
-    # Reported uncorrected in the $random element.
+    # chosen SOURCE node.  Within each resample, the (signed) effect of node i
+    # is compared with the effects of the p_A - 1 other source nodes of that
+    # SAME resample (a within-resample permutation of the target assignment);
+    # the p-value is the proportion of those paired comparisons in which
+    # another source node's effect is at least as strong.  'sgn' aligns
+    # "better" with the hypothesised direction (positive for aggravating,
+    # negative for alleviating).  Using the resampled effects for both the
+    # observation and the comparison pool keeps them on the same scale (the
+    # point estimate is NOT used here).  Reported uncorrected in the $random
+    # element.
     Z  <- sgn * resample_effects
-    z  <- sgn * effects
     p_perm <- sapply(seq_along(source_idx), function(i) {
+      obs    <- Z[, i]
       others <- Z[, -i, drop = FALSE]
-      (1 + sum(others >= z[i])) / (B * (length(source_idx) - 1) + 1)
+      (1 + sum(others >= obs)) / (B * (length(source_idx) - 1) + 1)
     })
   }
 
