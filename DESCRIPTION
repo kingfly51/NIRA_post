@@ -2,7 +2,7 @@ Package: NIRApost
 Type: Package
 Title: Post-Processing Tools for the NodeIdentifyR Algorithm (NIRA)
 Version: 1.2.0
-Date: 2026-08-29
+Date: 2026-08-31
 Authors@R: c(
     person("Fei",      "Wang",  email = "bjnwangfei0501@outlook.com",
            role = c("aut", "cre")),
