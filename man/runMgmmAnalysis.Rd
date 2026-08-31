@@ -9,7 +9,8 @@ runMgmmAnalysis(
   plotResults = FALSE,
   rule = "AND",
   lambdaGam = 0.25,
-  nB = 100
+  nB = 100,
+  ncores = 1L
 )
 }
 \arguments{
@@ -41,6 +42,16 @@ Larger values impose stronger sparsity.  Default: \code{0.25}.
   \item \code{nB >= 1000}: recommended for publication.
 }
 Very small values (\code{nB < 10}) trigger a warning.}
+
+\item{ncores}{Integer number of CPU cores.  \code{1} (default) runs
+serially; \code{ncores > 1} tests the \eqn{p} candidate moderator nodes
+in parallel via \code{parallel::parLapply}.  Because each node's
+\code{mgm::resample()} re-fits the model \code{nB} times (no internal
+parallelisation), the outer parallelisation over the \eqn{p} nodes gives
+an approximately \code{ncores}-fold speed-up while producing results
+identical to the serial run (a fixed seed is used per node).  A warning
+is issued if \code{plotResults = TRUE} and \code{ncores > 1}, since plots
+are then written from the master process only.}
 }
 \value{
 A named \code{list} with two elements:
