@@ -133,7 +133,8 @@ sig_moder <- runMgmmAnalysis(
   plotResults = FALSE,
   rule        = "AND",
   lambdaGam   = 0.25,
-  nB          = 10
+  nB          = 10,
+  ncores                    = 6
 )
 
 # Empty list => no moderation effects => NIRA is appropriate
