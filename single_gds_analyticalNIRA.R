@@ -76,7 +76,8 @@ sig_moder <- runMgmmAnalysis(data = as.matrix(GS_non_na),
                              plotResults = FALSE,
                              rule = "AND",
                              lambdaGam = 0.25,
-                             nB = 10)
+                             nB = 10,
+                             ncores = 6)
 # Print out the moderation effects
 print(sig_moder$significant_moderators)
 
