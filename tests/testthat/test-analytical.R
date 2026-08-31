@@ -57,6 +57,22 @@ test_that("analyticalNIRAtest: random-target p-value ranks the best node lowest"
                min(r$random$p))
 })
 
+test_that("analyticalNIRAtest: random-target p-values have discriminating power", {
+  # The random-target test must NOT collapse to p = 1 for every node (the
+  # symptom of comparing a point estimate against a resampled pool).  Here we
+  # verify the p-value range spans well below 1 and ranks by effect size.
+  set.seed(2025)
+  r <- analyticalNIRAtest(single_gds, "aggravating", nResample = 50)
+  pvals <- r$random$p
+  expect_true(min(pvals) < 0.1, info = paste("min p =", min(pvals)))
+  expect_true(max(pvals) > 0.5, info = paste("max p =", max(pvals)))
+  # Rank order: larger (signed) effect -> smaller p
+  ord <- order(r$random$effect, decreasing = TRUE)
+  expect_true(all(diff(r$random$p[ord]) >= 0) ||
+                # tolerate tiny ties from discrete counts
+                all(diff(r$random$p[ord]) >= -0.001))
+})
+
 test_that("analyticalNIRAtest: ASH is the strongest aggravating target", {
   set.seed(2025)
   r <- analyticalNIRAtest(single_gds, "aggravating", nResample = 20)

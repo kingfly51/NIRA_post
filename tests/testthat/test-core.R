@@ -60,6 +60,24 @@ test_that("permutationNIRAtest: returns a 'random' comparison element", {
   expect_equal(r$random$node[which.max(r$random$effect)],
                r$random$node[which.min(r$random$p)])
 })
+test_that("permutationNIRAtest: direction aligns random test with intervention direction", {
+  set.seed(1)
+  # A 是最有效的 alleviating 靶点（最负效应），C 为反向（正效应）
+  df <- data.frame(
+    sumscore = c(rnorm(60, 10, 2), rnorm(60, 6, 2),
+                 rnorm(60, 8, 2), rnorm(60, 11, 2)),
+    sample   = c(rep("original", 60), rep("A", 60),
+                 rep("B", 60), rep("C", 60))
+  )
+  r_abs <- permutationNIRAtest(df, direction = "abs")
+  r_all <- permutationNIRAtest(df, direction = "alleviating")
+  # 默认 abs 向后兼容
+  expect_equal(r_abs$random$p, r_all$random$p) # C 的反向效应在两种记分下都非最优
+  # 方向对齐下，最负效应节点（A）p 最小
+  expect_equal(r_all$random$node[which.min(r_all$random$p)], "A")
+  # 非法 direction 报错
+  expect_error(permutationNIRAtest(df, direction = "bogus"))
+})
 
 ## findMaxN -------------------------------------------------------------------
 test_that("findMaxN: returns correct dimensions and valid proportions", {
