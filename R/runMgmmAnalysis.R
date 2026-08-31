@@ -52,6 +52,15 @@
 #'     \item \code{nB >= 1000}: recommended for publication.
 #'   }
 #'   Very small values (\code{nB < 10}) trigger a warning.
+#' @param ncores Integer number of CPU cores.  \code{1} (default) runs
+#'   serially; \code{ncores > 1} tests the \eqn{p} candidate moderator nodes
+#'   in parallel via \code{parallel::parLapply}.  Because each node's
+#'   \code{mgm::resample()} re-fits the model \code{nB} times (no internal
+#'   parallelisation), the outer parallelisation over the \eqn{p} nodes gives
+#'   an approximately \code{ncores}-fold speed-up while producing results
+#'   identical to the serial run (a fixed seed is used per node).  A warning
+#'   is issued if \code{plotResults = TRUE} and \code{ncores > 1}, since plots
+#'   are then written from the master process only.
 #'
 #' @return
 #' A named \code{list} with two elements:
@@ -149,7 +158,7 @@
 #' @importFrom utils capture.output
 #' @export
 runMgmmAnalysis <- function(data, plotResults = FALSE, rule = "AND",
-                            lambdaGam = 0.25, nB = 100) {
+                            lambdaGam = 0.25, nB = 100, ncores = 1L) {
 
   if (!is.matrix(data) && !is.data.frame(data))
     stop("data must be a matrix or data frame.")
@@ -159,18 +168,22 @@ runMgmmAnalysis <- function(data, plotResults = FALSE, rule = "AND",
     stop("lambdaGam must be in [0, 1].")
   if (nB < 10)
     warning("nB < 10 may yield unstable resampling-based confidence intervals.")
+  if (!is.numeric(ncores) || length(ncores) != 1 || ncores < 1 ||
+      ncores != floor(ncores))
+    stop("'ncores' must be a single positive integer.")
+  ncores <- as.integer(ncores)
 
   p    <- ncol(data)
-  rl   <- vector("list", p)
-  names(rl) <- paste0("Moderator_", seq_len(p))
 
-  for (i in seq_len(p)) {
+  # Fit the moderated model for ONE candidate moderator node and run the
+  # case-resampling.  Pure function of i (plus the captured settings), so it
+  # can be run serially or in parallel with identical results.
+  fit_one_moderator <- function(i) {
     # Set a deterministic per-node seed before mgm::resample() to ensure
     # reproducibility. mgm::resample() internally calls set.seed(1),
     # which would otherwise override any externally set seed.
     # Using node index i as offset ensures independence across nodes.
     set.seed(1314L + i)
-    cat("\n------ Testing node", i, "as moderator ------\n")
 
     mm <- mgm::mgm(
       data       = as.matrix(data),
@@ -183,20 +196,47 @@ runMgmmAnalysis <- function(data, plotResults = FALSE, rule = "AND",
       scale      = FALSE
     )
 
-    br  <- mgm::resample(object = mm, data = as.matrix(data), nB = nB)
+    br  <- mgm::resample(object = mm, data = as.matrix(data), nB = nB,
+                         pbar = FALSE)
     tab <- mgm::plotRes(object = br, table = TRUE)[, -c(7, 8)]
 
-    rl[[i]] <- list(
-      model        = mm,
-      interactions = mm$interactions$indicator[[2]],
-      resamplingResult = br,
-      table        = tab
+    list(
+      model             = mm,
+      interactions      = mm$interactions$indicator[[2]],
+      resamplingResult  = br,
+      table             = tab
     )
+  }
 
-    if (plotResults) {
+  rl <- vector("list", p)
+  if (ncores > 1L) {
+    if (plotResults)
+      warning("plotResults = TRUE with ncores > 1: diagnostic plots are ",
+              "written from the master process after the parallel step.")
+    cl <- parallel::makeCluster(ncores)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+    parallel::clusterEvalQ(cl, requireNamespace("mgm", quietly = TRUE))
+    parallel::clusterExport(
+      cl,
+      varlist = c("data", "rule", "lambdaGam", "nB", "p",
+                  "fit_one_moderator"),
+      envir   = environment())
+    rl <- parallel::parLapply(cl, seq_len(p), fit_one_moderator)
+  } else {
+    for (i in seq_len(p)) {
+      cat("\n------ Testing node", i, "as moderator ------\n")
+      rl[[i]] <- fit_one_moderator(i)
+    }
+  }
+  names(rl) <- paste0("Moderator_", seq_len(p))
+
+  # Diagnostic plots are written from the master process (worker nodes cannot
+  # safely write to the working directory in parallel mode).
+  if (plotResults) {
+    for (i in seq_len(p)) {
       grDevices::png(paste0("Moderator_", i, "_Plot.png"),
                     width = 800, height = 600)
-      mgm::plotRes(object = br)
+      mgm::plotRes(object = rl[[i]]$resamplingResult)
       grDevices::dev.off()
     }
   }
