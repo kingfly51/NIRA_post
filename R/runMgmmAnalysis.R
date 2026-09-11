@@ -179,10 +179,7 @@ runMgmmAnalysis <- function(data, plotResults = FALSE, rule = "AND",
   # case-resampling.  Pure function of i (plus the captured settings), so it
   # can be run serially or in parallel with identical results.
   fit_one_moderator <- function(i) {
-    # Set a deterministic per-node seed before mgm::resample() to ensure
-    # reproducibility. mgm::resample() internally calls set.seed(1),
-    # which would otherwise override any externally set seed.
-    # Using node index i as offset ensures independence across nodes.
+    # Use a deterministic seed per candidate moderator for reproducibility.
     set.seed(1314L + i)
 
     mm <- mgm::mgm(
@@ -197,8 +194,8 @@ runMgmmAnalysis <- function(data, plotResults = FALSE, rule = "AND",
     )
 
     br  <- mgm::resample(object = mm, data = as.matrix(data), nB = nB,
-                         pbar = FALSE)
-    tab <- mgm::plotRes(object = br, table = TRUE)[, -c(7, 8)]
+                         pbar = FALSE, quantiles = c(0.025, 0.975))
+    tab <- mgm::plotRes(object = br, table = TRUE, quantiles = c(0.025, 0.975))[, -c(7, 8)]
 
     list(
       model             = mm,
@@ -236,7 +233,7 @@ runMgmmAnalysis <- function(data, plotResults = FALSE, rule = "AND",
     for (i in seq_len(p)) {
       grDevices::png(paste0("Moderator_", i, "_Plot.png"),
                     width = 800, height = 600)
-      mgm::plotRes(object = rl[[i]]$resamplingResult)
+      mgm::plotRes(object = rl[[i]]$resamplingResult, quantiles = c(0.025, 0.975))
       grDevices::dev.off()
     }
   }

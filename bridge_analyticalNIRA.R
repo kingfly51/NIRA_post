@@ -43,7 +43,6 @@ library(NIRApost)
 
 # Calculate all stable moderation effects present in the network
 set.seed(2025)
-set.seed(2025)
 sig_moder <- runMgmmAnalysis(data = as.matrix(GS_non_null),
                                plotResults = FALSE, rule = "AND",
                                lambdaGam = 0.25, nB = 10, ncores = 6)
@@ -66,8 +65,6 @@ res2 <- analyticalBridgeNIRAtest(data=GS_non_null,
                         ncores = 6) 
 
 res2$stat            # per-source-node inference on the outcome community
-
-res$random          # target-vs-random-source p-values (uncorrected)
 
 res2$exact           # exact outcome-community mean activation
 

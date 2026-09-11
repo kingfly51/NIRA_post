@@ -1,62 +1,37 @@
-# NIRApost 1.2.0 (2026-08-31)
+# What’s New in v1.2.0
 
-Adds an exact analytical workflow alongside the original Monte-Carlo
-pipeline, improves how uncertainty is quantified, and accelerates the
-moderation-effect prerequisite test.
+NIRApost v1.2.0 introduces exact analytical intervention analysis alongside the Monte Carlo workflow described in the original AMPPS tutorial. The update supports both whole-network and community-specific outcomes, quantifies sampling uncertainty through bootstrap resampling, and adds parallel moderation screening.
 
-### Highlights
+## Highlights
 
-- **Analytical NIRA (`analyticalNIRAtest()`)** — computes the expected number
-  of activated nodes *exactly* by enumerating all 2^p Ising microstates with a
-  numerically stable log-sum-exp scheme. This eliminates Monte Carlo error
-  entirely and runs in milliseconds for small-to-moderate networks (p ≲ 20),
-  reproducing Isinglandr's exact results to machine precision.
-- **Bridge / two-community NIRA (`analyticalBridgeNIRAtest()`)** — new exact
-  analysis for networks partitioned into two communities: intervene on each
-  node of a *source* community and obtain the exact mean activation of the
-  *outcome* community, with the same resampling-based inference.
-- **Uncertainty quantified by resampling the *original* data** — following Cui
-  et al. (2026), the remaining (sampling) error is characterized by
-  bootstrapping participants and re-estimating the network on each resample,
-  instead of relying on simulated samples. Each function returns a bootstrap
-  test (`$stat`: SE, CI, p for H0: Δ = 0, adjusted p, `percenttop_1` ranking
-  stability) and a random-target permutation test (`$random`: is node *i* a
-  better target than a randomly chosen node?).
-- **Consistent resampling estimator (`resample_default`)** — the bootstrap
-  re-estimation now uses the same estimator as the point estimate by default
-  (bootnet when network parameters are supplied, the fast pseudo-likelihood
-  estimator otherwise), so confidence intervals are correctly centred on the
-  point estimate. Available in both `analyticalNIRAtest()` and
-  `analyticalBridgeNIRAtest()`.
-- **`permutationNIRAtest()` returns `$random`** — a new element comparing each
-  node's simulated effect with a randomly chosen target node (rank-based
-  p-value, uncorrected), paralleling the random-target test in the analytical
-  workflow.
-- **Direction-aware random-target scoring (`permutationNIRAtest(direction=)`)** —
-  the `$random` comparison can be scored by absolute effect (default,
-  `"abs"`), by raw effect for aggravating interventions (`"aggravating"`), or
-  by negated effect for alleviating interventions (`"alleviating"`). Passing
-  the same intervention direction as used in `simulateResponses` makes the
-  random-target result directly comparable with the direction-aware test in
-  `analyticalNIRAtest()` / `analyticalBridgeNIRAtest()`.
-- **Faster moderation-effect testing (`runMgmmAnalysis`)** — new `ncores`
-  argument parallelises the candidate moderator nodes, giving an
-  approximately `ncores`-fold speed-up on multi-core machines while producing
-  results identical to the serial run. The bridge (two-community) NIRA
-  workflow now runs its whole-network moderation prerequisite test in
-  `Bridge_network_NIRA.R`.
+### Exact analytical NIRA (`analyticalNIRAtest()`)
 
-### Other improvements
+Computes the expected number of activated nodes by enumerating all 2^p Ising microstates. The calculation eliminates Monte Carlo approximation error in intervention expectations and uses stable log-weight normalization. Exact enumeration is particularly useful for smaller networks, while the original Monte Carlo workflow remains available when enumeration becomes computationally impractical.
 
-- Updated README and package vignette documenting all workflows (Monte Carlo,
-  analytical, and bridge NIRA), including how to interpret and report
-  bridge-NIRA results.
-- New tests: exact-value verification against independent brute-force
-  enumeration, consistency between the two analytical functions, and
-  regression tests for the resampling estimator.
-- No changes to the original V1.1.0 Monte-Carlo functions — all existing code
-  remains backward compatible.
+### Bridge and community-specific analysis (`analyticalBridgeNIRAtest()`)
 
-> **Note:** the analytical workflow is intended for small-to-moderate networks
-> (p ≲ 20). For larger networks where 2^p enumeration is infeasible, the
-> V1.1.0 Monte-Carlo workflow remains the recommended choice.
+Extends the analytical workflow to networks with defined communities. The function perturbs each node in a source community and calculates the exact expected activation count in an outcome community, allowing researchers to examine model-implied intervention effects across communities.
+
+### Sampling uncertainty assessed from the original data
+
+Both analytical functions bootstrap participants, re-estimate the network, and recompute intervention outcomes. Their `$stat` output includes intervention effects, Glass’s Δ, bootstrap standard errors, 95% percentile confidence intervals, approximate centered-bootstrap p-values for H₀: Δᵢ = 0, and multiplicity-adjusted p-values. The `percenttop_1` statistic summarizes how frequently each node has the largest absolute effect across bootstrap samples, providing a measure of ranking stability. Tied first places receive equal shares of the first-place credit.
+
+### Configurable estimation and parallel resampling
+
+The `resample_default` argument controls the network estimator used during bootstrap resampling. The default uses IsingFit when network parameters are supplied and the fast pseudo-likelihood estimator otherwise. Users should ensure that bootstrap estimation matches their original fitting procedure. The `parallel`, `ncores`, and `seed` arguments support parallel execution and reproducibility.
+
+### Integrated analytical visualization
+
+Each analytical function returns a customizable ggplot object displaying exact mean activation counts, bootstrap 95% confidence intervals, and significance annotations. Additional outputs provide exact expectations, bootstrap effect differences, and analysis settings for further examination.
+
+### Parallel moderation screening (`runMgmmAnalysis()`)
+
+A new `ncores` argument distributes candidate moderator analyses across CPU workers, helping reduce computation time. Moderation screening remains available as a model diagnostic for both the Monte Carlo and analytical workflows.
+
+### Corrected moderation intervals
+
+Moderation screening explicitly uses the 2.5th and 97.5th percentiles, consistent with the documented 95% interval. Previous moderation results should be rerun because the earlier implementation used default 90% intervals.
+
+## Interpretation
+
+The analytical workflows distinguish uncertainty from sampling participants from variability introduced by Monte Carlo simulation. Bootstrap intervals describe a fixed absolute perturbation determined from the original fitted network. Ranking stability and significance against zero should not be interpreted as evidence that one intervention target significantly outperforms another.

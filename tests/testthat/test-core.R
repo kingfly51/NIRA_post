@@ -43,7 +43,7 @@ test_that("permutationTest: rejects nPerm < 100", {
 })
 
 ## permutationNIRAtest --------------------------------------------------------
-test_that("permutationNIRAtest: returns a 'random' comparison element", {
+test_that("permutationNIRAtest: returns stat and plot_data elements", {
   set.seed(1)
   # 列顺序与 prepareDFforPlottingAndANOVA 一致：[sumscore, sample]
   df <- data.frame(
@@ -53,30 +53,14 @@ test_that("permutationNIRAtest: returns a 'random' comparison element", {
                  rep("B", 40), rep("C", 40))
   )
   r <- permutationNIRAtest(df, method = "bonferroni")
-  expect_true("random" %in% names(r))
-  expect_true(all(c("node", "effect", "p") %in% colnames(r$random)))
-  expect_true(all(r$random$p >= 0 & r$random$p <= 1))
-  # 效应最大的节点 p 值最小（最好靶点）
-  expect_equal(r$random$node[which.max(r$random$effect)],
-               r$random$node[which.min(r$random$p)])
-})
-test_that("permutationNIRAtest: direction aligns random test with intervention direction", {
-  set.seed(1)
-  # A 是最有效的 alleviating 靶点（最负效应），C 为反向（正效应）
-  df <- data.frame(
-    sumscore = c(rnorm(60, 10, 2), rnorm(60, 6, 2),
-                 rnorm(60, 8, 2), rnorm(60, 11, 2)),
-    sample   = c(rep("original", 60), rep("A", 60),
-                 rep("B", 60), rep("C", 60))
-  )
-  r_abs <- permutationNIRAtest(df, direction = "abs")
-  r_all <- permutationNIRAtest(df, direction = "alleviating")
-  # 默认 abs 向后兼容
-  expect_equal(r_abs$random$p, r_all$random$p) # C 的反向效应在两种记分下都非最优
-  # 方向对齐下，最负效应节点（A）p 最小
-  expect_equal(r_all$random$node[which.min(r_all$random$p)], "A")
-  # 非法 direction 报错
-  expect_error(permutationNIRAtest(df, direction = "bogus"))
+  expect_true(all(c("stat", "plot_data") %in% names(r)))
+  expect_true(all(c("mean_other", "effect", "cohen_d", "p", "p.adjust") %in%
+                    colnames(r$stat)))
+  # 效应与效应量同号（干预 − 原始）
+  expect_equal(sign(r$stat$effect), sign(r$stat$cohen_d))
+  # A 的干预组均值最高（最强 aggravating 靶点），其 p 值也最小
+  expect_equal(rownames(r$stat)[which.max(r$stat$mean_other)], "A")
+  expect_equal(rownames(r$stat)[which.min(r$stat$p)], "A")
 })
 
 ## findMaxN -------------------------------------------------------------------

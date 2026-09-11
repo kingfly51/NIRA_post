@@ -11,7 +11,7 @@ intervention analysis:
 - **Workflow 2 — Analytical solution** (new in v1.2.0): the expected number of
   activated nodes is computed *exactly* by enumerating all 2^p Ising
   microstates, eliminating Monte Carlo error. Uncertainty is quantified by
-  resampling the **original dataset** (bootstrap + random-target test).
+  resampling the **original dataset** (bootstrap-based inference).
 
 The `single_gds_NIRA.R` file is the complete set of code appearing in the
 Simulation Intervention for Cross-Sectional Network Models article
@@ -56,10 +56,8 @@ the only remaining uncertainty is **sampling error**, which is quantified by
 resampling the **original dataset** (not simulated samples):
 
 - `$stat` — bootstrap inference per node: exact mean activation, intervention
-  effect (Δ), Cohen's *d*, SE, 95% CI, *p*-value for H0: Δ = 0, adjusted
+  effect (Δ), Glass's Δ (`glass_d`), SE, 95% CI, *p*-value for H0: Δ = 0, adjusted
   *p*-value, and `percenttop_1` (ranking stability).
-- `$random` — random-target test: is node *i* a better target than a randomly
-  chosen node? (uncorrected).
 - `$exact` — exact mean activation for the original network and each
   intervention.
 - `$plot` — ggplot of exact mean activation with 95% CI and significance
@@ -194,12 +192,15 @@ unchanged (Δ ≈ 0), because the estimated bridge edges from the JKXW community
 to the MH community are weak and mostly pruned by the regularized estimator.
 The exception is **睡太少 (too little sleep)**: raising this node's activation
 increases the expected number of activated mental-health nodes by
-Δ = 0.685 − 0.646 = 0.039 (Cohen's *d* = 0.041).
+Δ = 0.685 − 0.646 = 0.039 (Glass's Δ = 0.041).
 
 `$stat` then summarises the same quantities **per source node** together with
 their resampling-based uncertainty:
 
-- `effect` / `cohen_d` — exact intervention effect and its standardised size.
+- `effect` / `glass_d` — exact intervention effect and its standardised size
+  (Glass's Δ: Δ divided by the exact SD of the *original* activation
+  distribution, **not** a pooled-SD Cohen's *d*). Both carry the sign of the
+  intervention: positive for aggravating, negative for alleviating.
 - `se_effect`, `ci_effect_lower/upper` — SE and 95% bootstrap CI of Δ.
 - `p`, `p.adjust` — bootstrap *p*-value for H0: Δ = 0, and the
   Bonferroni-corrected value.
@@ -222,13 +223,10 @@ their resampling-based uncertainty:
 不吃早餐 (0.174) and 独居 (0.129). All bootstrap *p*-values are non-significant
 (`p.adjust = 1` for every node), so in this sample no single health-behavior
 node produces a statistically reliable increase in mental-health activation.
-`$random` approaches the same question from the target-comparison angle: for
-each source node it gives the (uncorrected) probability that a *randomly
-chosen source* node would produce an effect at least as large. In this
-example all random-target *p*-values are large (well above 0.05), indicating
-that none of the health-behavior nodes is demonstrably superior to a random
-source target — consistent with the weak bridge edges recovered in the
-estimated network.
+`percenttop_1` is the metric that discriminates here: it ranks the source
+nodes by how consistently each is the strongest bridge target, which is the
+question of interest for target selection given that every Δ is
+deterministically non-zero.
 
 ### 6.2 How to report it in a paper
 
@@ -241,17 +239,15 @@ A concise results paragraph could be written as follows:
 > scale 0–3). Aggravating intervention on 7 of the 8 behavior nodes produced
 > negligible changes in mental-health activation (Δ < 0.004, all adjusted
 > *p* = 1). Only intervening on too-little-sleep increased the expected
-> number of activated symptoms, by Δ = 0.039 (Cohen's *d* = 0.041), but this
+> number of activated symptoms, by Δ = 0.039 (Glass's Δ = 0.041), but this
 > effect was not statistically reliable (95% CI [−0.001, 0.158]; bootstrap
 > *p* = 0.489, Bonferroni-adjusted *p* = 1). Too-little-sleep nevertheless
 > ranked first in 51.4% of the 1000 resamples (`percenttop_1`), suggesting it
-> is the most consistently promising bridge target, although its superiority
-> over a randomly chosen behavior node did not reach significance in the
-> random-target test.
+> is the most consistently promising bridge target.
 
 **Reporting checklist.** (1) state the outcome community and the scale of
 `mean_activation`; (2) report the original (pre-intervention) value; (3)
-report Δ, Cohen's *d*, 95% CI, and the adjusted *p*-value for each target, or
+report Δ, Glass's Δ, 95% CI, and the adjusted *p*-value for each target, or
 at least for the top-ranked nodes; (4) interpret `percenttop_1` as ranking
 stability rather than significance; (5) note the model assumption that the
 moderation-effect test (`runMgmmAnalysis()`) found no moderators, so

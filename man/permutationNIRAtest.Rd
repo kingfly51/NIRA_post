@@ -28,22 +28,29 @@ A named \code{list} with two elements:
 
 \describe{
   \item{\code{stat}}{A \code{data.frame} with one row per intervention
-    node (rows named by node label) and nine columns:
+    node (rows named by node label) and ten columns:
     \describe{
       \item{\code{mean_other}}{Mean sum score of the intervention sample.}
+      \item{\code{effect}}{Intervention effect
+        (\eqn{\bar{x}_\text{other} - \bar{x}_\text{orig}}): positive when
+        the intervention raised the score (aggravating), negative when it
+        lowered it (alleviating).  Same sign convention as
+        \code{\link{analyticalNIRAtest}}.}
       \item{\code{sd_other}}{Standard deviation.}
       \item{\code{se_other}}{Standard error.}
       \item{\code{ci_other}}{95 \% CI half-width (\eqn{1.96 \times \mathrm{SE}}).}
       \item{\code{ciLower_other}}{Lower 95 \% CI bound.}
       \item{\code{ciUpper_other}}{Upper 95 \% CI bound.}
-      \item{\code{cohen_d}}{Cohen's \eqn{d} versus the original sample.}
+      \item{\code{cohen_d}}{Cohen's \eqn{d} versus the original sample,
+        using the pooled standard deviation.  Carries the sign of
+        \code{effect}.}
       \item{\code{p}}{Raw two-sided permutation p-value.}
       \item{\code{p.adjust}}{Adjusted p-value after multiple-comparison
         correction.}
     }
   }
   \item{\code{plot_data}}{A \code{data.frame} with one row per network
-    condition (including the original) and four columns:
+    condition (including the original) and five columns:
     \describe{
       \item{\code{mean}}{Mean sum score.}
       \item{\code{ciLower}}{Lower 95 \% CI bound.}
@@ -53,14 +60,6 @@ A named \code{list} with two elements:
     }
     This data frame is passed directly to \code{\link{plotMeanNIRA}}.
   }
-  \item{\code{random}}{A \code{data.frame} comparing each node's simulated
-    intervention effect with a randomly chosen intervention target.  For
-    each node, \code{effect} is its mean sum score minus the original, and
-    \code{p} is the proportion of other nodes with an absolute effect at
-    least as large (a rank-based permutation \eqn{p}-value across target
-    nodes, reported uncorrected).  This mirrors the \code{$permutation}
-    element of \code{\link{analyticalNIRAtest}} and answers "is node
-    \eqn{i} a better target than a random node?".}
 }
 }
 \description{

@@ -40,38 +40,34 @@
 #'   \code{"bonferroni"} (default), \code{"BH"}, \code{"holm"},
 #'   \code{"hochberg"}, \code{"hommel"}, \code{"BY"}, \code{"fdr"},
 #'   \code{"none"}.
-#' @param direction Character string controlling how an intervention effect
-#'   is scored in the \code{$random} element:
-#'   \code{"abs"} (default) uses the absolute effect, so the node with the
-#'   largest \emph{magnitude} of change is "best" (mirrors
-#'   \code{\link{findMaxN}}); \code{"aggravating"} uses the raw effect
-#'   (largest increase is best); \code{"alleviating"} uses the negated effect
-#'   (largest decrease is best).  For consistency with the direction-aware
-#'   random-target test in \code{\link{analyticalNIRAtest}} /
-#'   \code{\link{analyticalBridgeNIRAtest}}, pass the same intervention
-#'   direction as used in \code{nodeIdentifyR::simulateResponses}.
-#'
 #' @return
 #' A named \code{list} with two elements:
 #'
 #' \describe{
 #'   \item{\code{stat}}{A \code{data.frame} with one row per intervention
-#'     node (rows named by node label) and nine columns:
+#'     node (rows named by node label) and ten columns:
 #'     \describe{
 #'       \item{\code{mean_other}}{Mean sum score of the intervention sample.}
+#'       \item{\code{effect}}{Intervention effect
+#'         (\eqn{\bar{x}_\text{other} - \bar{x}_\text{orig}}): positive when
+#'         the intervention raised the score (aggravating), negative when it
+#'         lowered it (alleviating).  Same sign convention as
+#'         \code{\link{analyticalNIRAtest}}.}
 #'       \item{\code{sd_other}}{Standard deviation.}
 #'       \item{\code{se_other}}{Standard error.}
 #'       \item{\code{ci_other}}{95 \% CI half-width (\eqn{1.96 \times \mathrm{SE}}).}
 #'       \item{\code{ciLower_other}}{Lower 95 \% CI bound.}
 #'       \item{\code{ciUpper_other}}{Upper 95 \% CI bound.}
-#'       \item{\code{cohen_d}}{Cohen's \eqn{d} versus the original sample.}
+#'       \item{\code{cohen_d}}{Cohen's \eqn{d} versus the original sample,
+#'         using the pooled standard deviation.  Carries the sign of
+#'         \code{effect}.}
 #'       \item{\code{p}}{Raw two-sided permutation p-value.}
 #'       \item{\code{p.adjust}}{Adjusted p-value after multiple-comparison
 #'         correction.}
 #'     }
 #'   }
 #'   \item{\code{plot_data}}{A \code{data.frame} with one row per network
-#'     condition (including the original) and four columns:
+#'     condition (including the original) and five columns:
 #'     \describe{
 #'       \item{\code{mean}}{Mean sum score.}
 #'       \item{\code{ciLower}}{Lower 95 \% CI bound.}
@@ -81,16 +77,6 @@
 #'     }
 #'     This data frame is passed directly to \code{\link{plotMeanNIRA}}.
 #'   }
-#'   \item{\code{random}}{A \code{data.frame} comparing each node's simulated
-#'     intervention effect with a randomly chosen intervention target.  For
-#'     each node, \code{effect} is its mean sum score minus the original, and
-#'     \code{p} is the proportion of other nodes with a (direction-scored)
-#'     effect at least as large (a rank-based permutation \eqn{p}-value across
-#'     target nodes, reported uncorrected).  The scoring follows the
-#'     \code{direction} argument.  It answers "is node \eqn{i} a better target
-#'     than a random node?" and is consistent with the random-target test in
-#'     \code{\link{analyticalNIRAtest}} / \code{\link{analyticalBridgeNIRAtest}}
-#'     when \code{direction} matches the intervention direction.}
 #' }
 #'
 #' @section Method Recommendations:
@@ -157,8 +143,8 @@
 #' @importFrom stats p.adjust
 #' @importFrom rlang .data
 #' @export
-permutationNIRAtest <- function(gs_sumIsingSamplesLong, method = "bonferroni",
-                                direction = "abs") {
+permutationNIRAtest <- function(gs_sumIsingSamplesLong,
+                                method = "bonferroni") {
 
   if (!is.data.frame(gs_sumIsingSamplesLong))
     stop("Input must be a data.frame from ",
@@ -169,72 +155,42 @@ permutationNIRAtest <- function(gs_sumIsingSamplesLong, method = "bonferroni",
                "BH", "BY", "fdr", "none")
   if (!method %in% valid_m)
     stop("Invalid method. Choose from: ", paste(valid_m, collapse = ", "))
-  if (!direction %in% c("abs", "aggravating", "alleviating"))
-    stop("'direction' must be 'abs', 'aggravating' or 'alleviating'.")
 
-  # Pivot to wide format
-  wide <- gs_sumIsingSamplesLong %>%
-    dplyr::group_by(sample) %>%
-    dplyr::mutate(row = dplyr::row_number()) %>%
-    tidyr::pivot_wider(names_from = sample, values_from = sumscore) %>%
-    dplyr::select(-row) %>%
-    dplyr::mutate(dplyr::across(dplyr::everything(), as.numeric))
-
-  cats  <- unique(gs_sumIsingSamplesLong[[2]])
-  orig  <- as.matrix(wide[, "original"])
-  other <- as.matrix(wide[, !cats %in% "original"])
+  # Select conditions by their names; extra columns and column order are irrelevant.
+  conditions <- as.character(gs_sumIsingSamplesLong$sample)
+  scores <- gs_sumIsingSamplesLong$sumscore
+  if (anyNA(conditions) || any(!nzchar(conditions)))
+    stop("'sample' must contain nonempty condition labels.")
+  if (!is.numeric(scores) || any(!is.finite(scores)))
+    stop("'sumscore' must contain finite numeric observations.")
+  cats <- unique(conditions)
+  if (!"original" %in% cats || length(cats) < 2L)
+    stop("Input must contain 'original' and at least one intervention condition.")
+  orig <- scores[conditions == "original"]
+  other <- lapply(setdiff(cats, "original"), function(nm) scores[conditions == nm])
+  names(other) <- setdiff(cats, "original")
 
   set.seed(2025)
   sl <- as.data.frame(NULL)
-  for (i in seq_len(ncol(other))) {
-    pl          <- permutationTest(orig, other[, i], 5000)
+  for (i in seq_along(other)) {
+    pl          <- permutationTest(orig, other[[i]], 5000)
     sl[i, 1]   <- pl$mean_other
-    sl[i, 2]   <- pl$sd_other
-    sl[i, 3]   <- pl$se_other
-    sl[i, 4]   <- pl$ci_other
-    sl[i, 5]   <- pl$ciLower_other
-    sl[i, 6]   <- pl$ciUpper_other
-    sl[i, 7]   <- pl$cohens_d
-    sl[i, 8]   <- pl$p_value
+    sl[i, 2]   <- pl$mean_other - pl$mean_original   # intervention - original
+    sl[i, 3]   <- pl$sd_other
+    sl[i, 4]   <- pl$se_other
+    sl[i, 5]   <- pl$ci_other
+    sl[i, 6]   <- pl$ciLower_other
+    sl[i, 7]   <- pl$ciUpper_other
+    sl[i, 8]   <- pl$cohens_d
+    sl[i, 9]   <- pl$p_value
   }
-  rownames(sl) <- colnames(other)
-  colnames(sl) <- c("mean_other", "sd_other", "se_other", "ci_other",
+  rownames(sl) <- names(other)
+  colnames(sl) <- c("mean_other", "effect", "sd_other", "se_other", "ci_other",
                     "ciLower_other", "ciUpper_other", "cohen_d", "p")
   sl$p.adjust  <- stats::p.adjust(sl$p, method = method)
 
-  # Comparison with a randomly chosen intervention target.  For each node,
-  # the effect is its simulated mean sum score minus the original; the
-  # permutation p-value is the proportion of other nodes with an effect at
-  # least as large (a rank-based permutation across target nodes).  The
-  # "strength" used for the comparison follows 'direction':
-  #   - "abs"        (default): |effect| — the node with the largest absolute
-  #                  intervention effect is "best" (mirrors findMaxN).
-  #   - "aggravating":  effect  (positive) — the largest increase is best.
-  #   - "alleviating": -effect  (negative) — the largest decrease is best.
-  # This makes the element consistent with the direction-aware random-target
-  # test in analyticalNIRAtest / analyticalBridgeNIRAtest.  Reported
-  # uncorrected.  Backward compatible: the existing $stat and $plot_data
-  # elements are unchanged.
-  random_eff <- sl$mean_other - pl$mean_original
-  names(random_eff) <- rownames(sl)
-  rng <- switch(direction,
-                "abs"         = abs(random_eff),
-                "aggravating" = random_eff,
-                "alleviating" = -random_eff)
-  random_p <- sapply(seq_len(nrow(sl)), function(i) {
-    others <- rng[-i]
-    (1 + sum(others >= rng[i])) / nrow(sl)
-  })
-  random <- data.frame(
-    node   = rownames(sl),
-    effect = random_eff,
-    p      = random_p,
-    row.names = rownames(sl),
-    stringsAsFactors = FALSE
-  )
-
   # Build plot_data
-  d1           <- sl[, c(1, 5, 6)]
+  d1           <- sl[, c("mean_other", "ciLower_other", "ciUpper_other")]
   colnames(d1) <- c("mean", "ciLower", "ciUpper")
   d2           <- cbind(pl$mean_original,
                         pl$ciLower_original,
@@ -245,5 +201,5 @@ permutationNIRAtest <- function(gs_sumIsingSamplesLong, method = "bonferroni",
   d3$id        <- 0:(nrow(d3) - 1)
   d3$node      <- rownames(d3)
 
-  list(stat = sl, plot_data = d3, random = random)
+  list(stat = sl, plot_data = d3)
 }

@@ -184,6 +184,8 @@ imputeData <- function(data, method = "mi", ...) {
     stop("Invalid method '", method, "'. Choose from: ",
          paste(valid_methods, collapse = ", "))
 
+  data <- as.data.frame(data)
+
   complete_cols <- names(which(colSums(is.na(data)) == 0))
   feature_methods <- c("knn", "decision_tree", "svm", "ann", "logistic")
   if (method %in% feature_methods && length(complete_cols) == 0)
@@ -197,7 +199,10 @@ imputeData <- function(data, method = "mi", ...) {
       mode_data <- data
       for (col in names(data)) {
         if (any(is.na(data[[col]]))) {
-          mode_val <- names(sort(table(data[[col]]), decreasing = TRUE))[1]
+          observed <- data[[col]][!is.na(data[[col]])]
+          if (!length(observed)) stop("Cannot impute entirely missing column: ", col)
+          values <- unique(observed)
+          mode_val <- values[which.max(tabulate(match(observed, values)))]
           mode_data[is.na(data[[col]]), col] <- mode_val
         }
       }
@@ -208,7 +213,8 @@ imputeData <- function(data, method = "mi", ...) {
       message("Applying k-Nearest Neighbours imputation (VIM::kNN)...")
       dots <- list(...)
       k    <- if ("k" %in% names(dots)) dots$k else 5
-      res  <- VIM::kNN(data, k = k, ...)
+      dots$k <- k
+      res <- do.call(VIM::kNN, c(list(data = data), dots))
       imp  <- grep("_imp$", names(res), value = TRUE)
       if (length(imp)) res <- res[, !names(res) %in% imp]
       res[, names(data)]
@@ -219,7 +225,9 @@ imputeData <- function(data, method = "mi", ...) {
       dots    <- list(...)
       maxiter <- if ("maxiter" %in% names(dots)) dots$maxiter else 10
       ntree   <- if ("ntree"   %in% names(dots)) dots$ntree   else 100
-      missForest::missForest(data, maxiter = maxiter, ntree = ntree, ...)$ximp
+      dots$maxiter <- maxiter
+      dots$ntree <- ntree
+      do.call(missForest::missForest, c(list(xmis = data), dots))$ximp
     },
 
     "decision_tree" = {
@@ -290,7 +298,10 @@ imputeData <- function(data, method = "mi", ...) {
       dots  <- list(...)
       m     <- if ("m"     %in% names(dots)) dots$m     else 5
       maxit <- if ("maxit" %in% names(dots)) dots$maxit else 10
-      imp   <- mice::mice(data, m = m, maxit = maxit, printFlag = FALSE, ...)
+      dots$m <- m
+      dots$maxit <- maxit
+      if (is.null(dots$printFlag)) dots$printFlag <- FALSE
+      imp <- do.call(mice::mice, c(list(data = data), dots))
       mice::complete(imp, 1)
     },
 

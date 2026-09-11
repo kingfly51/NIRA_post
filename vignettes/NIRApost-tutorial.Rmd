@@ -41,8 +41,8 @@ by enumerating all 2^p Ising microstates, thereby eliminating Monte Carlo
 error. Because the analytical result is exact given the network parameters,
 the only remaining uncertainty is **sampling error**, which is quantified by
 resampling the original dataset — bootstrap-based inference is returned in
-`$stat` and a random-target test in `$random`. This workflow is especially
-suited to networks of small or moderate size (p ≲ 20).
+`$stat`. This workflow is especially suited to networks of small or moderate
+size (p ≲ 20).
 
 Both workflows share the moderation effect test (`runMgmmAnalysis`) as a
 prerequisite.
@@ -300,7 +300,7 @@ The only remaining source of uncertainty is **sampling error**: the network
 parameters (W, m) are estimated from a finite sample. `analyticalNIRAtest()`
 quantifies this uncertainty by resampling the **original dataset** — each
 resample re-estimates the network and recomputes the exact solution — and
-returns bootstrap-based inference and a random-target test in a single call.
+returns bootstrap-based inference in a single call.
 
 ### The `analyticalNIRAtest()` Function
 
@@ -315,16 +315,13 @@ returns bootstrap-based inference and a random-target test in a single call.
 | `seed` | Random seed |
 | `parallel`, `ncores` | Parallel computation settings |
 
-The function returns a list with four main elements:
+The function returns a list with three main elements:
 
 - **`$stat`** — bootstrap-based inference per node: exact mean activation,
-  intervention effect (Δ), Cohen's *d*, standard error, 95% confidence
+  intervention effect (Δ), Glass's Δ (`glass_d`), standard error, 95% confidence
   intervals, *p*-value for H0: Δ = 0, adjusted *p*-value, and `percenttop_1`
   (the proportion of resamples in which each node ranked first — an
   analytical stability metric).
-- **`$random`** — a random-target test: the (uncorrected) probability that a
-  randomly chosen node has an effect at least as large as node *i*'s effect,
-  answering "is node *i* a better intervention target than a random node?"
 - **`$exact`** — the exact mean activation for the original network and each
   one-node intervention.
 - **`$plot`** — a ggplot of the exact mean activation with 95% CI error bars
@@ -347,9 +344,6 @@ res <- analyticalNIRAtest(
 
 # Bootstrap-based inference: effect, SE, CI, p, percenttop_1
 head(res$stat)
-
-# Random-target test (uncorrected): is each node better than a random target?
-res$random
 
 # Exact mean activation for the original network and each intervention
 res$exact
@@ -448,21 +442,13 @@ res2$exact
 ```
 
 **`$stat`** — per-source-node inference on the outcome community: exact mean
-activation, 95% CI, intervention effect Δ, Cohen's *d*, bootstrap SE/CI, the
+activation, 95% CI, intervention effect Δ, Glass's Δ (`glass_d`), bootstrap SE/CI, the
 bootstrap *p*-value for H0: Δ = 0, its adjusted value, and `percenttop_1`
 (the proportion of resamples in which the node had the largest absolute
 effect on the outcome community):
 
 ```{r bridge_stat}
 res2$stat
-```
-
-**`$random`** — the random-target test, restricted to the *source* community:
-for each source node, the (uncorrected) probability that a randomly chosen
-source node would produce an effect at least as large.
-
-```{r bridge_random}
-res2$random
 ```
 
 **`$plot`** — the exact outcome-community mean activation of each condition
@@ -489,9 +475,6 @@ with 95% CI error bars and significance stars.
   with `percenttop_1` far above the others is the most consistently strong
   bridge target. In the example, 睡太少 (too little sleep) ranked first in
   51.4% of resamples, ahead of 不吃早餐 (17.4%) and 独居 (12.9%).
-- **`$random`** answers "is node *i* a better target than a randomly chosen
-  source node?" within the source community. Large (uncorrected) *p*-values
-  mean no source node is demonstrably superior to a random source target.
 
 ### How to Report in a Paper
 
@@ -504,16 +487,15 @@ A concise bridge-NIRA results paragraph could read:
 > Aggravating intervention on 7 of the 8 behaviour nodes produced negligible
 > changes in mental-health activation (Δ < 0.004, all Bonferroni-adjusted
 > *p* = 1). Only intervening on too-little-sleep increased the expected
-> number of activated symptoms, by Δ = 0.039 (Cohen's *d* = 0.041), but this
+> number of activated symptoms, by Δ = 0.039 (Glass's Δ = 0.041), but this
 > effect was not statistically reliable (95% CI [−0.001, 0.158]; bootstrap
 > *p* = 0.489, adjusted *p* = 1). Too-little-sleep nevertheless ranked first
 > in 51.4% of the 1000 resamples (`percenttop_1`), suggesting it is the most
-> consistently promising bridge target, although its superiority over a
-> randomly chosen behaviour node did not reach significance.
+> consistently promising bridge target.
 
 **Reporting checklist.** (1) State the outcome community and the scale of
 `mean_activation` (0–p_B). (2) Report the original pre-intervention value.
-(3) Report Δ, Cohen's *d*, 95% CI and adjusted *p*-value for each target (or
+(3) Report Δ, Glass's Δ, 95% CI and adjusted *p*-value for each target (or
 at least the top-ranked ones). (4) Interpret `percenttop_1` as ranking
 stability, not significance. (5) Note the model assumption that the
 moderation-effect test (`runMgmmAnalysis()`) found no moderators, so a

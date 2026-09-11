@@ -110,16 +110,13 @@ test_that("analyticalBridgeNIRAtest: returns expected structure", {
   )
 
   expect_true(is.list(res))
-  expect_true(all(c("stat", "random", "exact", "resample_effects",
+  expect_true(all(c("stat", "exact", "resample_effects",
                     "plot", "parameters") %in% names(res)))
 
   pA <- sum(groups == "A")
   expect_equal(nrow(res$stat), pA)
-  expect_true(all(c("mean_activation", "effect", "cohen_d", "se_effect",
+  expect_true(all(c("mean_activation", "effect", "glass_d", "se_effect",
                     "p", "p.adjust", "percenttop_1") %in% colnames(res$stat)))
-  expect_equal(nrow(res$random), pA)
-  expect_true(all(c("node", "effect", "p") %in% colnames(res$random)))
-  expect_true(all(res$random$p >= 0 & res$random$p <= 1))
   expect_equal(nrow(res$exact), pA + 1)
   expect_equal(dim(res$resample_effects), c(20L, pA))
   expect_s3_class(res$plot, "ggplot")

@@ -44,12 +44,16 @@ A named \code{list} with 17 elements:
   \item{\code{pooled_std_dev}}{Pooled standard deviation used to
     compute Cohen's \eqn{d}.}
   \item{\code{cohens_d}}{Cohen's \eqn{d} effect size
-    (\eqn{(\bar{x}_\text{orig} - \bar{x}_\text{other}) / s_p}).}
+    (\eqn{(\bar{x}_\text{other} - \bar{x}_\text{orig}) / s_p}), using the
+    pooled standard deviation.  Positive means the intervention raised the
+    score, so an aggravating intervention yields a positive \eqn{d} and an
+    alleviating one a negative \eqn{d}.}
   \item{\code{p_value}}{Two-sided permutation p-value.}
   \item{\code{n_permutations}}{Number of permutations actually used.}
   \item{\code{permutation_distribution}}{Numeric vector of length
-    \code{nPerm} containing all permuted mean differences, useful for
-    diagnostic plotting.}
+    \code{nPerm} containing all permuted mean differences (group 1 minus
+    group 2, i.e. original minus intervention under the null labelling),
+    useful for diagnostic plotting.}
 }
 }
 \description{
@@ -107,7 +111,7 @@ res <- permutationTest(rnorm(150, 4), rnorm(150, 5), nPerm = 2000)
 hist(res$permutation_distribution,
      main = "Permutation null distribution",
      xlab = "Mean difference")
-abline(v = res$mean_original - res$mean_other, col = "red", lwd = 2)
+abline(v = res$mean_other - res$mean_original, col = "red", lwd = 2)
 }
 
 }

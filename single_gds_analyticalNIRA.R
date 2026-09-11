@@ -3,7 +3,7 @@
 #pointed out that there is no need to employ simulation methods that incorporate Monte Carlo error, because an analytical method 
 #exists that provides an error-free solution. Moreover, this approach is computationally very fast. Therefore, the updated NIRApost 1.2.0 
 #includes a new function, analyticalNIRAtest, for the analytical solution-based NIRA procedure. This function encompasses the computation
-#of analytical solutions, uncertainty interval estimation (providing both bootstrap tests and permutation tests), and plotting capabilities.
+#of analytical solutions, bootstrap uncertainty estimation (without a random-target test), and plotting capabilities.
 #Consequently, NIRApost now offers two distinct NIRA workflows:
 #The first is the four-step NIRA approach combined with moderation effect testing, permutation testing, and stability testing, as demonstrated in the single_gds_NIRA.R file.
 #The second is the moderation effect testing combined with analytical solution-based NIRA, as demonstrated in the single_gad_analyticalNIRA.R file.
@@ -116,7 +116,6 @@ res <- analyticalNIRAtest(
 )
 
 res$stat
-res$random
 res$plot
 
 res$exact

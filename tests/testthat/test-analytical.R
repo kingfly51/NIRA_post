@@ -34,43 +34,15 @@ test_that("analyticalNIRAtest: returns expected structure", {
   set.seed(2025)
   r <- analyticalNIRAtest(single_gds, "aggravating", nResample = 20)
   expect_true(is.list(r))
-  expect_true(all(c("stat", "random", "exact", "resample_effects",
+  expect_true(all(c("stat", "exact", "resample_effects",
                     "plot", "parameters") %in% names(r)))
   p <- ncol(single_gds)
   expect_equal(nrow(r$stat), p)
   expect_true(all(c("mean_activation", "effect", "se_effect", "p",
                     "p.adjust", "percenttop_1") %in% colnames(r$stat)))
-  expect_equal(nrow(r$random), p)
-  expect_true(all(c("node", "effect", "p") %in% colnames(r$random)))
-  expect_true(all(r$random$p >= 0 & r$random$p <= 1))
   expect_equal(nrow(r$exact), p + 1)
   expect_equal(dim(r$resample_effects), c(20L, p))
   expect_s3_class(r$plot, "ggplot")
-})
-
-test_that("analyticalNIRAtest: random-target p-value ranks the best node lowest", {
-  set.seed(2025)
-  r <- analyticalNIRAtest(single_gds, "aggravating", nResample = 20)
-  best <- r$random$node[which.max(r$random$effect)]
-  expect_equal(best, "ASH")
-  expect_equal(r$random$p[r$random$node == best],
-               min(r$random$p))
-})
-
-test_that("analyticalNIRAtest: random-target p-values have discriminating power", {
-  # The random-target test must NOT collapse to p = 1 for every node (the
-  # symptom of comparing a point estimate against a resampled pool).  Here we
-  # verify the p-value range spans well below 1 and ranks by effect size.
-  set.seed(2025)
-  r <- analyticalNIRAtest(single_gds, "aggravating", nResample = 50)
-  pvals <- r$random$p
-  expect_true(min(pvals) < 0.1, info = paste("min p =", min(pvals)))
-  expect_true(max(pvals) > 0.5, info = paste("max p =", max(pvals)))
-  # Rank order: larger (signed) effect -> smaller p
-  ord <- order(r$random$effect, decreasing = TRUE)
-  expect_true(all(diff(r$random$p[ord]) >= 0) ||
-                # tolerate tiny ties from discrete counts
-                all(diff(r$random$p[ord]) >= -0.001))
 })
 
 test_that("analyticalNIRAtest: ASH is the strongest aggravating target", {

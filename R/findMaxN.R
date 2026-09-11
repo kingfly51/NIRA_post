@@ -118,17 +118,22 @@ findMaxN <- function(simResult, n = 3) {
              !colnames(simResult$mean) %in% "original",
              drop = FALSE]
 
+  if (!is.numeric(n) || length(n) != 1L || !is.finite(n) || n < 1 || n != floor(n))
+    stop("'n' must be a positive integer.")
+  if (nrow(other) < 1L || !is.numeric(other) || any(!is.finite(other)) || any(!is.finite(orig)))
+    stop("Simulation means must be a nonempty finite numeric matrix.")
   if (n > ncol(other))
     stop("n (", n, ") exceeds the number of intervention nodes (",
          ncol(other), ").")
 
   # Absolute difference from original for each repetition x node
-  md <- apply(other, 2, function(x) abs(orig - x))
+  md <- abs(sweep(other, 1, orig, "-"))
 
   # For each repetition, identify the top-n nodes
   top_n_names <- function(row)
     colnames(md)[order(row, decreasing = TRUE)[seq_len(n)]]
-  tdf         <- as.data.frame(t(apply(md, 1, top_n_names)))
+  tdf <- as.data.frame(do.call(rbind, lapply(seq_len(nrow(md)),
+                     function(i) top_n_names(md[i, ]))))
   colnames(tdf) <- paste0("repeattop_", seq_len(n))
 
   # Count frequencies
