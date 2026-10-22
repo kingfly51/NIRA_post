@@ -2,7 +2,9 @@
 
 export("%>%")
 export(analyticalBridgeNIRAtest)
+export(analyticalBridgeStabilityNIRAtest)
 export(analyticalNIRAtest)
+export(analyticalStabilityNIRAtest)
 export(checkMissing)
 export(findMaxN)
 export(imputeData)

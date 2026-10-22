@@ -1,3 +1,27 @@
+# What’s New in v1.3.0
+
+NIRApost v1.3.0 separates exact analytical results from bootstrap stability.
+
+## Breaking changes
+
+### Exact functions now return exact-only results
+
+`analyticalNIRAtest()` and `analyticalBridgeNIRAtest()` now return only exact quantities: `$stat` contains `mean_activation`, `effect`, and `glass_d`, and `$plot` draws the exact mean activation with **no confidence interval and no significance stars**. The `nResample`, `method`, `seed`, `parallel`, `ncores`, and `resample_default` arguments have been removed from these two functions.
+
+### New bootstrap stability functions
+
+`analyticalStabilityNIRAtest()` and `analyticalBridgeStabilityNIRAtest()` perform bootstrap resampling of the original dataset (default `nReps = 1000`), re-estimate the network on every resample, and recompute the exact solution. They return:
+
+- `$stat` — exact effects plus bootstrap SE, 95% percentile CI of the mean activation and of Δ, centered-bootstrap p-values for H₀: Δᵢ = 0, adjusted p-values, and `percenttop_1 … percenttop_nRanks`;
+- `$resample_effects`, `$maxn`, `$exact`, and `$parameters`;
+- `$plot` — a stacked-bar ranking-stability plot across bootstrap resamples, analogous to the repeated-simulation plot produced by `stabilityNIRAtest()` and `plotMaxN()`. Tied ranks share credit equally, so every `percenttop_k` column sums to one.
+
+### Plot helper
+
+`plotMaxN()` gains an `xlab` argument; its default preserves the existing simulation-based axis label.
+
+---
+
 # What’s New in v1.2.0
 
 NIRApost v1.2.0 introduces exact analytical intervention analysis alongside the Monte Carlo workflow described in the original AMPPS tutorial. The update supports both whole-network and community-specific outcomes, quantifies sampling uncertainty through bootstrap resampling, and adds parallel moderation screening.

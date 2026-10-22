@@ -50,6 +50,7 @@ print(sig_moder$significant_moderators)
 
 groups <- rep(c("JKXW","MH"),c(8,3))
 
+# Exact solution: deterministic, no confidence intervals
 res2 <- analyticalBridgeNIRAtest(data=GS_non_null,
                         groups=groups,
                         intervention_group="JKXW",
@@ -57,15 +58,29 @@ res2 <- analyticalBridgeNIRAtest(data=GS_non_null,
                         perturbation_type = "aggravating",
                         edge_weights = edgeWeightMatrix,
                         thresholds =thresholdVector,
-                        amount_of_SDs_perturbation = 2,
-                        nResample = 1000,
-                        method = "bonferroni",
-                        seed = 2025,
-                        parallel = TRUE,
-                        ncores = 6) 
+                        amount_of_SDs_perturbation = 2)
 
-res2$stat            # per-source-node inference on the outcome community
+res2$stat            # exact per-source-node effects on the outcome community
 
 res2$exact           # exact outcome-community mean activation
 
 res2$plot
+
+# Bootstrap stability: 1000 resamples, inference table + ranking-stability plot
+res2_stab <- analyticalBridgeStabilityNIRAtest(data=GS_non_null,
+                        groups=groups,
+                        intervention_group="JKXW",
+                        outcome_group="MH",
+                        perturbation_type = "aggravating",
+                        edge_weights = edgeWeightMatrix,
+                        thresholds =thresholdVector,
+                        amount_of_SDs_perturbation = 2,
+                        nReps = 1000,
+                        method = "bonferroni",
+                        seed = 2025,
+                        parallel = TRUE,
+                        ncores = 6)
+
+res2_stab$stat
+res2_stab$plot
+res2_stab$maxn

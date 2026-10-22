@@ -1,0 +1,575 @@
+---
+title: "NIRApost Tutorial"
+author: "Wang Fei, Wu Yiming, Wu Yibo, Zhu Tingshao"
+date: "2026-08-30"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+vignette: >
+  %\VignetteIndexEntry{NIRApost Tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
+```
+
+## Overview
+
+NIRApost is an R package designed for post-processing of the NodeIdentifyR
+Algorithm (NIRA) applied to Ising network models in psychological research.
+It provides **two complementary workflows**:
+
+**Workflow 1 — Monte Carlo simulation (Steps 1–5).** The classical NIRA
+pipeline: network estimation, simulation of original and post-intervention
+samples, permutation testing, and repeated-simulation stability assessment.
+Its post-processing validation comprises three checks:
+
+1. **Moderation effect testing** (`runMgmmAnalysis`) — a theoretical
+   prerequisite that must be completed *before* running NIRA
+2. **Permutation testing** (`permutationNIRAtest`, `plotMeanNIRA`) — formal
+   significance testing with multiple-comparison correction
+3. **Stability testing** (`stabilityNIRAtest`, `findMaxN`, `plotMaxN`) —
+   verification that results are reproducible across independent simulation
+   runs
+
+**Workflow 2 — Analytical solution (extended in v1.3.0).**
+`analyticalNIRAtest()` computes the mean number of activated nodes *exactly*
+by enumerating all 2^p Ising microstates, thereby eliminating Monte Carlo
+error. Exact results are returned without confidence intervals. The only
+remaining uncertainty is **sampling error**, which is quantified separately
+by `analyticalStabilityNIRAtest()`: it resamples the original dataset,
+recomputes the exact solution, and draws a ranking-stability plot analogous
+to the Monte Carlo stability test. This workflow is especially suited to
+networks of small or moderate size (p ≲ 20).
+
+Both workflows share the moderation effect test (`runMgmmAnalysis`) as a
+prerequisite.
+
+The package is used in conjunction with **nodeIdentifyR**. For full details,
+please refer to the companion tutorial article:
+
+> *Simulation Intervention for Cross-Sectional Network Models: An R Tutorial*
+
+---
+
+## Package Load
+
+```{r package_load}
+library(NIRApost)       # Load NIRApost Package
+library(bootnet)        # Load bootnet Package
+library(nodeIdentifyR)  # Load nodeIdentifyR Package
+library(dplyr)          # Load dplyr Package
+```
+
+---
+
+## Workflow 1: Monte Carlo Simulation
+
+The following steps (1–5) implement the classical Monte Carlo NIRA pipeline.
+Step 1 (network estimation) is shared by both workflows.
+
+---
+
+## Step 1: Import Data and Fit Ising Network
+
+We use the built-in `single_gds` dataset (GAD-7 anxiety scale, N = 2,404).
+An Ising network is estimated via `bootnet::estimateNetwork()` with the "AND"
+rule. Two components are extracted:
+
+- **Edge weight matrix** — pairwise connection weights between all nodes
+- **Threshold parameter vector** — intercept terms from each node's logistic
+  regression in the Ising model
+
+```{r Ising_Network_Fit}
+# Load the built-in GAD-7 anxiety dataset
+data("single_gds")
+
+# Fit the Ising model
+gs_fit <- estimateNetwork(single_gds,
+                           default = "IsingFit",
+                           rule    = "AND")
+
+# Extract edge weight matrix and threshold parameters
+edgeWeightMatrix <- gs_fit$graph
+thresholdVector  <- gs_fit$intercepts
+```
+
+---
+
+## Step 2: Moderation Effect Test (Prerequisite for NIRA)
+
+### Why This Must Be Done First
+
+NIRA perturbs one node's threshold while keeping all edge weights unchanged.
+This is valid **only if** no node moderates other pairwise edges. If node A
+moderates the B–C relationship, then changing A's threshold implicitly alters
+the B–C edge weight, making the original edge weight matrix theoretically
+inappropriate for post-intervention simulation.
+
+**This test must be run before NIRA.** An empty `significant_moderators` list
+confirms the assumption holds.
+
+### Implementation
+
+`runMgmmAnalysis()` iteratively treats each node as a candidate moderator,
+fits a Moderated Mixed Graphical Model (MGMM) via `mgm::mgm()`, and uses
+resampling via `mgm::resample()` to retain only stable effects (95% CI
+excluding zero).
+
+| Parameter | Description |
+|---|---|
+| `data` | Dataset as a numeric matrix |
+| `plotResults` | `TRUE` exports per-moderator network plots |
+| `rule` | `"AND"` (stringent, default) or `"OR"` (inclusive) |
+| `lambdaGam` | EBIC regularization parameter (default: 0.25) |
+| `nB` | Resampling iterations (use ≥ 100 for publication) |
+
+```{r Moderation_Effect_Test}
+# nB = 10 for demonstration only; use >= 100 for publication
+sig_moder <- runMgmmAnalysis(
+  data        = as.matrix(single_gds),
+  plotResults = FALSE,
+  rule        = "AND",
+  lambdaGam   = 0.25,
+  nB          = 10,
+  ncores                    = 6
+)
+
+# Empty list => no moderation effects => NIRA is appropriate
+print(sig_moder$significant_moderators)
+```
+
+---
+
+## Step 3: NIRA Simulation Intervention
+
+With the moderation assumption confirmed, we proceed with NIRA using
+functions from **nodeIdentifyR**.
+
+`simulateResponses()` generates N + 1 datasets: for each of the N nodes,
+one dataset with that node's threshold reduced by 2 SDs (alleviating
+intervention), plus one unperturbed original dataset.
+
+To perform aggravating interventions, change `"alleviating"` to
+`"aggravating"` throughout.
+
+```{r Simulated_alleviate_intervention}
+set.seed(2025)
+
+# Generate N+1 simulated samples
+gs_IsingSamples <- simulateResponses(
+  edge_weight                = edgeWeightMatrix,
+  thresholds                 = thresholdVector,
+  perturbation_type          = "alleviating",
+  amount_of_SDs_perturbation = 2
+)
+
+# Calculate sum scores for each participant in each simulated sample
+gs_sumIsingSamples <- calculateSumScores(gs_IsingSamples)
+
+# Convert to long format for plotting
+gs_sumIsingSamplesLong <- prepareDFforPlottingAndANOVA(gs_sumIsingSamples)
+
+# Plot mean total scores (ascending order for alleviating interventions)
+plotSumScores(
+  sum_scores_long   = gs_sumIsingSamplesLong,
+  perturbation_type = "alleviating"
+)
+```
+
+---
+
+## Step 4: Permutation Test
+
+### Why Visual Inspection Is Insufficient
+
+The `plotSumScores` output has four critical limitations:
+
+1. **No formal evidence** — visual comparison cannot confirm statistical
+   significance
+2. **CI overlap is unreliable** — checking 95% error bar overlap is an
+   inaccurate significance criterion
+3. **Magnitude sensitivity** — smaller perturbations make visual assessment
+   highly unreliable
+4. **Multiple-comparison inflation** — N simultaneous comparisons with no
+   correction inflate the Type I error rate
+
+### Implementation
+
+`permutationNIRAtest()` calls `permutationTest()` for every node in batch,
+applies multiple-comparison correction, and returns a unified statistics
+table and plotting-ready data frame. `plotMeanNIRA()` visualises the result
+as a line plot with 95% CIs and significance stars
+(*** p < 0.001, ** p < 0.01, * p < 0.05).
+
+| Parameter | Description |
+|---|---|
+| `gs_sumIsingSamplesLong` | Long-format output from `prepareDFforPlottingAndANOVA()` |
+| `method` | Multiple-comparison correction: `"bonferroni"` (default), `"BH"`, `"holm"`, etc. |
+
+```{r permutationTest}
+# Batch permutation tests with Bonferroni correction
+stat_result <- permutationNIRAtest(gs_sumIsingSamplesLong,
+                                    method = "bonferroni")
+
+# View per-node statistics (mean, SD, SE, CI, Cohen's d, p, p.adjust)
+head(stat_result$stat)
+
+# Visualise means with 95% CIs and significance stars
+plotMeanNIRA(stat_result, "alleviating")
+```
+
+---
+
+## Step 5: Stability Test
+
+### Why Stability Testing Is Necessary
+
+A single simulation run may give different results depending on the random
+seed. Only results consistent across many independent simulation runs can be
+trusted.
+
+**Note**: this procedure performs *repeated simulation* — independently
+re-running the full simulation from scratch using the original network
+parameters. The observed data are never resampled.
+
+### Implementation
+
+`stabilityNIRAtest()` repeats the full simulation `nReps` times independently.
+`findMaxN()` aggregates how often each node ranked in the top-n positions
+across all repetitions. `plotMaxN()` visualises the stability as a stacked
+bar plot.
+
+| Parameter | Description |
+|---|---|
+| `edge_weights` | Edge weight matrix from the Ising network |
+| `thresholds` | Threshold parameter vector |
+| `perturbation_type` | `"aggravating"` or `"alleviating"` |
+| `amount_of_SDs_perturbation` | Perturbation magnitude in SDs |
+| `nReps` | Number of independent simulation repetitions |
+| `parallel` | `TRUE` enables parallel execution (recommended for nReps ≥ 100) |
+| `ncores` | CPU cores (`NULL` = auto-detect) |
+
+```{r stability_test}
+# Parallel execution (recommended)
+# nReps = 100 for demonstration; use >= 1000 for publication
+simResult <- stabilityNIRAtest(
+  edge_weights               = edgeWeightMatrix,
+  thresholds                 = thresholdVector,
+  perturbation_type          = "alleviating",
+  amount_of_SDs_perturbation = 2,
+  nReps                      = 100,
+  parallel                   = TRUE,
+  ncores                     = 6
+)
+
+# Serial execution (uncomment to use; displays a progress bar)
+# simResult <- stabilityNIRAtest(
+#   edgeWeightMatrix, thresholdVector,
+#   "alleviating", 2,
+#   nReps    = 100,
+#   parallel = FALSE,
+#   ncores   = NULL
+# )
+
+# Compute rank frequencies across all simulation repetitions
+repeat_node <- findMaxN(simResult, n = 7)
+print(repeat_node)
+
+# Stacked bar plot of node ranking stability
+plotMaxN(repeat_node, low = 1, high = 7)
+```
+
+---
+
+## Workflow 2: Analytical Solution — `analyticalNIRAtest`
+
+### Why an Analytical Approach?
+
+Cui et al. (2026) showed that the expected number of activated nodes in an
+Ising network can be obtained *exactly* by enumerating all 2^p microstates,
+without Monte Carlo simulation. Each activation state a has a Boltzmann
+weight given by its Hamiltonian, and the mean number of activated nodes is
+the Boltzmann-weighted average over all 2^p states. Because the result is
+exact, **Monte Carlo error is eliminated**, and the computation is extremely
+fast for small to moderate networks.
+
+The exact solution is deterministic given the network parameters, so it is
+reported **without confidence intervals**. The only remaining source of
+uncertainty is **sampling error**: the network parameters (W, m) are
+estimated from a finite sample. `analyticalStabilityNIRAtest()` quantifies
+this uncertainty by resampling the **original dataset** — each resample
+re-estimates the network and recomputes the exact solution — and returns
+bootstrap-based inference together with a ranking-stability plot.
+
+### The `analyticalNIRAtest()` Function (exact solution)
+
+| Parameter | Description |
+|---|---|
+| `data` | Binary (0/1) data; rows = participants, columns = nodes |
+| `perturbation_type` | `"aggravating"` (threshold up) or `"alleviating"` (threshold down) |
+| `edge_weights`, `thresholds` | Optional pre-estimated network parameters (auto-estimated if `NULL`) |
+| `amount_of_SDs_perturbation` | Perturbation magnitude in SDs of thresholds (default: 2) |
+
+The function returns:
+
+- **`$stat`** — exact mean activation, intervention effect (Δ), and Glass's Δ
+  (`glass_d`) per node.
+- **`$exact`** — the exact mean activation for the original network and each
+  one-node intervention.
+- **`$plot`** — a ggplot of the exact mean activation, deliberately **without**
+  confidence intervals or significance stars.
+
+### The `analyticalStabilityNIRAtest()` Function (bootstrap stability)
+
+| Parameter | Description |
+|---|---|
+| `nReps` | Number of bootstrap resamples (default: 1000) |
+| `method` | Multiple-comparison correction for the bootstrap p-values (default: `"bonferroni"`) |
+| `seed` | Random seed |
+| `parallel`, `ncores` | Parallel computation settings |
+| `resample_default` | Estimator used on each resample (`NULL` matches the point estimate) |
+| `nRanks` | Number of rank positions to report and plot (default: all nodes) |
+
+The function returns:
+
+- **`$stat`** — exact effects plus bootstrap standard error, 95% CI of the
+  mean activation and of Δ, *p*-value for H0: Δ = 0, adjusted *p*-value, and
+  `percenttop_1 … percenttop_nRanks`.
+- **`$resample_effects`** — the resampled effect matrix.
+- **`$maxn`** — rank-frequency table ready for `plotMaxN()`.
+- **`$plot`** — a stacked-bar ranking-stability plot across bootstrap
+  resamples, analogous to the Monte Carlo stability test.
+
+```{r analytical_workflow}
+# 1) Exact solution: deterministic, no confidence intervals
+res <- analyticalNIRAtest(
+  data                      = single_gds,
+  perturbation_type         = "alleviating",
+  edge_weights              = edgeWeightMatrix,
+  thresholds                = thresholdVector,
+  amount_of_SDs_perturbation = 2
+)
+
+res$stat
+res$exact
+res$plot
+
+# 2) Bootstrap stability: sampling uncertainty + ranking-stability plot
+res_stab <- analyticalStabilityNIRAtest(
+  data                      = single_gds,
+  perturbation_type         = "alleviating",
+  edge_weights              = edgeWeightMatrix,
+  thresholds                = thresholdVector,
+  amount_of_SDs_perturbation = 2,
+  nReps                     = 1000,
+  method                    = "bonferroni",
+  seed                      = 2025,
+  parallel                  = TRUE,
+  ncores                    = 6
+)
+
+head(res_stab$stat)   # effect, SE, CI, p, percenttop_*
+res_stab$plot         # ranking-stability plot
+res_stab$maxn         # table behind the plot
+```
+
+### How to Choose Between the Two Workflows?
+
+| Situation | Recommended workflow |
+|---|---|
+| Small or moderate network (p ≲ 20); exact, fast results desired | **Workflow 2** (`analyticalNIRAtest`) |
+| Large network where 2^p enumeration is infeasible | **Workflow 1** (Monte Carlo) |
+| Full simulation-based permutation / stability infrastructure needed | **Workflow 1** |
+
+---
+
+## Workflow 3: Bridge (Two-Community) NIRA — `analyticalBridgeNIRAtest` + `analyticalBridgeStabilityNIRAtest`
+
+### What Is a Bridge Intervention?
+
+In bridge-network research the network is partitioned into **two communities**
+(e.g., health-behaviour nodes vs. mental-health symptom nodes), and the
+question is *which node of one community, when intervened upon, most strongly
+changes the activation of the other community*. The `Bridge_network_NIRA.R`
+script computes networktools bridge centrality first, then uses NIRA to
+intervene on each node of the source community (JKXW) and measures the total
+score of the outcome community (MH) as the downstream outcome.
+
+`analyticalBridgeNIRAtest()` is the exact analytical version of this
+procedure: it enumerates all 2^p microstates once, but the outcome statistic
+is restricted to the **outcome community's** activation count
+(Σ_{j∈B} s_j + p_B)/2. Intervening on a source node reweights the microstates
+exactly, so no re-enumeration is needed for the p_A source interventions.
+It returns exact quantities and an exact plot without confidence intervals.
+
+`analyticalBridgeStabilityNIRAtest()` is the bootstrap companion: it resamples
+the original data, re-estimates the network, recomputes the exact
+outcome-community solution on every resample, and draws the ranking-stability
+plot for the source nodes.
+
+For this workflow we use a different dataset: `bridge_network.xlsx`
+(health-behaviour and mental-health items) is read and cleaned into
+`GS_non_null` as in `Bridge_network_NIRA.R`, and its Ising network is fitted
+with `bootnet::estimateNetwork()` to obtain `edgeWeightMatrix` and
+`thresholdVector`.
+
+### Prerequisite: Moderation-Effect Test on the Whole Network
+
+Before any bridge intervention, the moderation-effect test
+(`runMgmmAnalysis()`) must be run on the **entire** network (both communities
+together), exactly as in Workflow 1. The threshold-shift intervention model
+is a property of the full joint distribution, and an intervention on a source
+node propagates through the whole network — so a moderator *anywhere* would
+change edge weights during the intervention and invalidate the model. An
+empty `significant_moderators` list confirms the assumption holds.
+
+```{r bridge_moderation}
+# Whole-network moderation test (Step 3 of Bridge_network_NIRA.R).
+# ncores > 1 parallelises the p candidate moderator nodes (identical results
+# to the serial run); set ncores = 1 for serial execution.
+sig_moder <- runMgmmAnalysis(
+  data        = as.matrix(GS_non_null),
+  plotResults = FALSE,
+  rule        = "AND",
+  lambdaGam   = 0.25,
+  nB          = 10,          # use >= 100 for publication
+  ncores      = 6            # parallel over moderator nodes
+)
+# Empty list => no significant moderation => bridge NIRA is appropriate
+print(sig_moder$significant_moderators)
+```
+
+```{r bridge_workflow}
+groups <- rep(c("JKXW", "MH"), c(8, 3))      # 8 source + 3 outcome nodes
+
+# 1) Exact solution: deterministic, no confidence intervals
+res2 <- analyticalBridgeNIRAtest(
+  data                      = GS_non_null,    # binary data (N x p)
+  groups                    = groups,
+  intervention_group        = "JKXW",         # intervene on source nodes
+  outcome_group             = "MH",           # measure outcome community
+  perturbation_type         = "aggravating",
+  edge_weights              = edgeWeightMatrix,  # from bootnet (fit$graph)
+  thresholds                = thresholdVector,   # from bootnet (fit$intercepts)
+  amount_of_SDs_perturbation = 2
+)
+
+# 2) Bootstrap stability: sampling uncertainty + ranking-stability plot
+res2_stab <- analyticalBridgeStabilityNIRAtest(
+  data                      = GS_non_null,
+  groups                    = groups,
+  intervention_group        = "JKXW",
+  outcome_group             = "MH",
+  perturbation_type         = "aggravating",
+  edge_weights              = edgeWeightMatrix,
+  thresholds                = thresholdVector,
+  amount_of_SDs_perturbation = 2,
+  nReps                     = 1000,
+  method                    = "bonferroni",
+  seed                      = 2025,
+  parallel                  = TRUE,
+  ncores                    = 6
+)
+```
+
+### How to Read the Output
+
+**`$exact`** — exact mean number of activated *outcome* nodes under the
+original network and under each one-node source intervention:
+
+```{r bridge_exact}
+res2$exact
+```
+
+**`$stat` (exact function)** — exact per-source-node effect on the outcome
+community: mean activation, intervention effect Δ, and Glass's Δ
+(`glass_d`):
+
+```{r bridge_stat}
+res2$stat
+```
+
+**`$stat` (stability function)** — the same exact effects plus bootstrap
+SE/CI, the bootstrap *p*-value for H0: Δ = 0, its adjusted value, and
+`percenttop_1 … percenttop_nRanks`:
+
+```{r bridge_stability_stat}
+res2_stab$stat
+```
+
+**`$plot` (exact function)** — the exact outcome-community mean activation of
+each condition, with no confidence interval or significance stars.
+
+**`$plot` (stability function)** — the stacked-bar ranking-stability plot
+across bootstrap resamples.
+
+### Interpretation: What to Look At
+
+- **`mean_activation` is on the outcome-community scale** (0–p_B), not the
+  full-network scale. Read it as "expected number of activated *outcome*
+  nodes", not "total activated nodes". In the example, the MH community
+  (depression, anxiety, stress) is active at only ~0.65 nodes on average,
+  so most participants report at most one of the three symptoms.
+- **`effect` / Δ** is the difference between the outcome-community mean after
+  the intervention and the original value (from `$exact`). Values near 0 mean
+  the source node barely propagates to the outcome community (weak or absent
+  bridge edges).
+- **`p.adjust` tests H0: Δ = 0.** Because the analytical solution makes every
+  single-node effect deterministically non-zero, these *p*-values are usually
+  trivially non-significant for every node and are *not* the discriminating
+  output.
+- **`percenttop_1` is the discriminating metric.** It is the analytical
+  analogue of `findMaxN()`: the proportion of resamples in which the node
+  ranked first (largest absolute effect on the outcome community). A node
+  with `percenttop_1` far above the others is the most consistently strong
+  bridge target; `percenttop_2`, `percenttop_3`, … show how consistently it
+  occupies the remaining positions, and `res2_stab$plot` visualises all of
+  them. In the example, 睡太少 (too little sleep) ranked first in 51.4% of
+  resamples, ahead of 不吃早餐 (17.4%) and 独居 (12.9%).
+
+### How to Report in a Paper
+
+A concise bridge-NIRA results paragraph could read:
+
+> Using the analytical bridge-NIRA workflow, we intervened on each
+> health-behaviour node and computed the exact expected number of activated
+> mental-health symptoms (depression, anxiety, stress). In the original
+> network the outcome community was active at a mean of 0.65 nodes.
+> Aggravating intervention on 7 of the 8 behaviour nodes produced negligible
+> changes in mental-health activation (Δ < 0.004, all Bonferroni-adjusted
+> *p* = 1). Only intervening on too-little-sleep increased the expected
+> number of activated symptoms, by Δ = 0.039 (Glass's Δ = 0.041), but this
+> effect was not statistically reliable (95% CI [−0.001, 0.158]; bootstrap
+> *p* = 0.489, adjusted *p* = 1). Too-little-sleep nevertheless ranked first
+> in 51.4% of the 1000 resamples (`percenttop_1`), suggesting it is the most
+> consistently promising bridge target.
+
+**Reporting checklist.** (1) State the outcome community and the scale of
+`mean_activation` (0–p_B). (2) Report the original pre-intervention value.
+(3) Report Δ, Glass's Δ, 95% CI and adjusted *p*-value for each target (or
+at least the top-ranked ones). (4) Interpret `percenttop_1` as ranking
+stability, not significance. (5) Note the model assumption that the
+moderation-effect test (`runMgmmAnalysis()`) found no moderators, so a
+single-node intervention leaves all edge weights unchanged.
+
+---
+
+## Summary: Three Workflows
+
+| Workflow | Key steps | Primary function(s) | Purpose |
+|---|---|---|---|
+| **Workflow 1 (Monte Carlo)** | Moderation → Simulation → Permutation → Stability | `runMgmmAnalysis()`, `permutationNIRAtest()`, `stabilityNIRAtest()`, `findMaxN()`, `plotMaxN()` | Quantify Monte Carlo error |
+| **Workflow 2 (Analytical)** | Moderation → Exact solution → Bootstrap stability | `runMgmmAnalysis()`, `analyticalNIRAtest()`, `analyticalStabilityNIRAtest()` | Exact results; sampling uncertainty and rank stability reported separately |
+| **Workflow 3 (Bridge)** | Moderation → Exact bridge solution → Bootstrap stability | `runMgmmAnalysis()`, `analyticalBridgeNIRAtest()`, `analyticalBridgeStabilityNIRAtest()` | Exact cross-community (source → outcome) effects; bootstrap rank stability |
+
+---
+
+## Session Info
+
+```{r session_info, eval=TRUE, echo=FALSE}
+sessionInfo()
+```

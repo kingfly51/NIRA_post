@@ -8,10 +8,13 @@ intervention analysis:
 - **Workflow 1 — Monte Carlo simulation** (the original NIRA pipeline):
   network estimation → simulation of original and post-intervention samples →
   permutation testing → repeated-simulation stability assessment.
-- **Workflow 2 — Analytical solution** (new in v1.2.0): the expected number of
-  activated nodes is computed *exactly* by enumerating all 2^p Ising
-  microstates, eliminating Monte Carlo error. Uncertainty is quantified by
-  resampling the **original dataset** (bootstrap-based inference).
+- **Workflow 2 — Analytical solution** (broadened in v1.3.0): the expected
+  number of activated nodes is computed *exactly* by enumerating all 2^p Ising
+  microstates, eliminating Monte Carlo error. The exact functions report
+  deterministic quantities and draw exact plots **without confidence
+  intervals**; sampling uncertainty and ranking stability are handled by
+  separate bootstrap functions that plot a stability graph analogous to the
+  Monte Carlo stability test.
 
 The `single_gds_NIRA.R` file is the complete set of code appearing in the
 Simulation Intervention for Cross-Sectional Network Models article
@@ -47,28 +50,46 @@ Functions: `permutationNIRAtest()`, `stabilityNIRAtest()`, `findMaxN()`,
 `runMgmmAnalysis()`. This workflow quantifies Monte Carlo error and is
 recommended for larger networks where 2^p enumeration is infeasible.
 
-### Workflow 2 — Analytical solution (`analyticalNIRAtest`)
+### Workflow 2 — Analytical solution
 
-A single function, `analyticalNIRAtest()`, computes the exact mean activation
-under any one-node intervention by enumerating all 2^p microstates
-(Cui et al., 2026). Because the result is exact given the network parameters,
-the only remaining uncertainty is **sampling error**, which is quantified by
-resampling the **original dataset** (not simulated samples):
+The analytical workflow is split into two functions so that exact results and
+sampling uncertainty are never mixed in one plot.
 
-- `$stat` — bootstrap inference per node: exact mean activation, intervention
-  effect (Δ), Glass's Δ (`glass_d`), SE, 95% CI, *p*-value for H0: Δ = 0, adjusted
-  *p*-value, and `percenttop_1` (ranking stability).
+**Exact solution — `analyticalNIRAtest()`**
+
+Computes the exact mean activation under any one-node intervention by
+enumerating all 2^p microstates (Cui et al., 2026):
+
+- `$stat` — exact mean activation, intervention effect (Δ) and Glass's Δ
+  (`glass_d`) per node.
 - `$exact` — exact mean activation for the original network and each
   intervention.
-- `$plot` — ggplot of exact mean activation with 95% CI and significance
-  stars.
+- `$plot` — ggplot of exact mean activation. It deliberately contains **no
+  confidence interval and no significance stars**.
 
-### Dual-network (bridge) NIRA — `analyticalBridgeNIRAtest`
+**Bootstrap stability — `analyticalStabilityNIRAtest()`**
+
+Quantifies the only remaining uncertainty (**sampling error**) by resampling
+the **original dataset** (not simulated samples), re-estimating the network
+and recomputing the exact solution on every resample:
+
+- `$stat` — exact effects plus bootstrap SE, 95% CI of the mean activation
+  and of Δ, *p*-value for H0: Δ = 0, adjusted *p*-value, and
+  `percenttop_1 … percenttop_p` (ranking stability).
+- `$resample_effects` — the resampled effect matrix.
+- `$maxn` — rank-frequency table ready for `plotMaxN()`.
+- `$plot` — stacked-bar **ranking-stability plot** across bootstrap
+  resamples, analogous to the Monte Carlo stability test
+  (`stabilityNIRAtest()` + `plotMaxN()`).
+
+### Dual-network (bridge) NIRA
 
 For a network partitioned into two communities (e.g., health behaviors vs.
 mental-health symptoms), `analyticalBridgeNIRAtest()` intervenes on each node
 of a **source** community and computes the exact mean activation of the
-**outcome** community. See **Section 6** for a worked interpretation.
+**outcome** community; `analyticalBridgeStabilityNIRAtest()` performs the
+corresponding bootstrap stability analysis. See **Section 6** for a worked
+interpretation.
 
 As in the other workflows, the moderation-effect test
 (`runMgmmAnalysis()`) is a **prerequisite** and must be run on the **whole**
@@ -142,8 +163,9 @@ help(permutationNIRAtest, package = "NIRApost")
 ```
 
 The `R/` directory contains all core functions of the NIRApost package,
-including the analytical workflow functions `analyticalNIRAtest()` and
-`analyticalBridgeNIRAtest()`.
+including the exact analytical functions `analyticalNIRAtest()` and
+`analyticalBridgeNIRAtest()` and their bootstrap stability counterparts
+`analyticalStabilityNIRAtest()` and `analyticalBridgeStabilityNIRAtest()`.
 
 ---
 
@@ -156,6 +178,7 @@ using an aggravating intervention (threshold raised, node more likely to be
 activated).
 
 ```r
+# 1) Exact solution: deterministic, no confidence intervals
 res2 <- analyticalBridgeNIRAtest(
   data               = GS_non_null,
   groups             = groups,                # rep(c("JKXW", "MH"), c(8, 3))
@@ -164,8 +187,20 @@ res2 <- analyticalBridgeNIRAtest(
   perturbation_type  = "aggravating",
   edge_weights       = edgeWeightMatrix,      # fit$graph from bootnet
   thresholds         = thresholdVector,       # fit$intercepts from bootnet
+  amount_of_SDs_perturbation = 2
+)
+
+# 2) Bootstrap stability: sampling uncertainty + ranking-stability plot
+res2_stab <- analyticalBridgeStabilityNIRAtest(
+  data               = GS_non_null,
+  groups             = groups,
+  intervention_group = "JKXW",
+  outcome_group      = "MH",
+  perturbation_type  = "aggravating",
+  edge_weights       = edgeWeightMatrix,
+  thresholds         = thresholdVector,
   amount_of_SDs_perturbation = 2,
-  nResample          = 1000,
+  nReps              = 1000,
   method             = "bonferroni",
   seed               = 2025,
   parallel           = TRUE,
@@ -194,22 +229,22 @@ The exception is **睡太少 (too little sleep)**: raising this node's activatio
 increases the expected number of activated mental-health nodes by
 Δ = 0.685 − 0.646 = 0.039 (Glass's Δ = 0.041).
 
-`$stat` then summarises the same quantities **per source node** together with
-their resampling-based uncertainty:
+The exact `$stat` gives `effect` / `glass_d` **per source node** — the
+intervention effect and its standardised size (Glass's Δ: Δ divided by the
+exact SD of the *original* activation distribution, **not** a pooled-SD
+Cohen's *d*). Both carry the sign of the intervention: positive for
+aggravating, negative for alleviating.
 
-- `effect` / `glass_d` — exact intervention effect and its standardised size
-  (Glass's Δ: Δ divided by the exact SD of the *original* activation
-  distribution, **not** a pooled-SD Cohen's *d*). Both carry the sign of the
-  intervention: positive for aggravating, negative for alleviating.
+`analyticalBridgeStabilityNIRAtest()` adds the resampling-based uncertainty:
+
 - `se_effect`, `ci_effect_lower/upper` — SE and 95% bootstrap CI of Δ.
+- `ci_lower`, `ci_upper` — 95% bootstrap CI of the mean activation.
 - `p`, `p.adjust` — bootstrap *p*-value for H0: Δ = 0, and the
   Bonferroni-corrected value.
-- `percenttop_1` — the proportion of resamples in which the node had the
-  largest absolute effect on the outcome community. This is the analytical
-  analogue of `findMaxN()` and the *discriminating* metric here: because the
-  analytical solution makes every Δ deterministically non-zero, the H0: Δ = 0
-  test is trivially non-significant for all nodes, whereas `percenttop_1`
-  ranks which source is most consistently the strongest bridge target.
+- `percenttop_1 … percenttop_p` — the proportion of resamples in which the
+  node occupied each rank by absolute effect on the outcome community. This
+  is the analytical analogue of `findMaxN()`, and `$plot` draws the
+  corresponding stacked-bar stability graph.
   Note that, like `findMaxN()`, `percenttop_1` scores by *absolute* effect
   (mirroring the classical stability metric). Under an alleviating
   intervention a node whose effect runs counter to the intended direction
